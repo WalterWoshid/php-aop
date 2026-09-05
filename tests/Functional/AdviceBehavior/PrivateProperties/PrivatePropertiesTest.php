@@ -158,4 +158,59 @@ class PrivatePropertiesTest extends TestCase
         }
         self::assertFalse($property->isInitialized($child));
     }
+
+    public function testInvocationAccessorMutatesActualSubjectAndSupportsReferences(): void
+    {
+        $subject = new ParentInput();
+        $subject->unique();
+        $invocation = EverythingAspect::$invocation;
+        self::assertSame($subject, $invocation->getSubject());
+        $properties = $invocation->properties();
+        $properties->unique[] = 'appended';
+        $reference =& $properties->unique;
+        $reference[] = 'reference';
+        self::assertSame(['unique', 'appended', 'reference'], $subject->unique());
+        self::assertTrue(isset($properties->unique));
+        $properties->unique = ['assigned'];
+        self::assertSame(['assigned'], $subject->unique());
+        unset($properties->unique);
+        self::assertFalse(isset($properties->unique));
+        self::assertFalse(isset($properties->missing));
+    }
+
+    public function testInvocationAccessorSelectsParentAndChildScope(): void
+    {
+        $subject = new ChildInput();
+        $subject->childTokens();
+        $invocation = EverythingAspect::$invocation;
+        $invocation->properties(ParentInput::class)->tokens = ['changed parent'];
+        $invocation->properties(ChildInput::class)->tokens = 'changed child';
+        self::assertSame(['changed parent'], $subject->parentTokens());
+        self::assertSame('changed child', $subject->childTokens());
+        $this->expectException(\LogicException::class);
+        $invocation->properties()->tokens;
+    }
+
+    public function testStaticInvocationAccessor(): void
+    {
+        StaticChild::childTokens();
+        $invocation = EverythingAspect::$invocation;
+        self::assertNull($invocation->getSubject());
+        $properties = $invocation->properties(StaticChild::class);
+        $properties->tokens = 'assigned';
+        self::assertSame('assigned', $properties->tokens);
+        self::assertSame('assigned', StaticChild::childTokens());
+        $this->expectException(\Error::class);
+        unset($properties->tokens);
+    }
+
+    public function testAccessorDoesNotInitializeNullablePropertyOnRead(): void
+    {
+        $subject = new PublicInput();
+        $subject->childTokens();
+        $properties = EverythingAspect::$invocation->properties(PublicInput::class);
+        self::assertFalse(isset($properties->uninitialized));
+        $this->expectException(\Error::class);
+        $properties->uninitialized;
+    }
 }

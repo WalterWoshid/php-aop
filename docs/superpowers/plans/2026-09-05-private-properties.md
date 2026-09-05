@@ -29,6 +29,7 @@ declare promoted properties a second time.
 
 ## Publishing decision
 
-User confirmation is pending for the documented compatibility change: advice must
-use PropertyAccess instead of direct access to private properties. No automatic
-magic accessor workaround is included because it can invalidate child classes.
+The user approved migration to `$invocation->properties($declaringClass)`.
+The accessor wraps property access only; it never replaces the subject or adds
+magic methods to the subject's inheritance hierarchy. Reads/writes, array mutation,
+references, isset/unset, and static invocation access have functional coverage.

@@ -8,19 +8,15 @@ types. They also retain independent values when their types are identical.
 ## Migration
 
 Advice that previously read or wrote a private property directly through
-`$invocation->getSubject()` must use `Okapi\Aop\PropertyAccess` instead. This applies
+`$invocation->getSubject()` should use `$invocation->properties()` instead. This applies
 to all private properties, including properties whose names are currently unique.
 Public and protected properties retain their existing behavior. Method interception
 is unchanged.
 
 ```php
-use Okapi\Aop\PropertyAccess;
-
-$subject = $invocation->getSubject();
-
 // Before: $subject->data = ['updated'];
-PropertyAccess::set($subject, 'data', ['updated'], DatabaseService::class);
-$data = PropertyAccess::get($subject, 'data', DatabaseService::class);
+$invocation->properties()->data = ['updated'];
+$data = $invocation->properties()->data;
 ```
 
 Use the original class that declares the property, without `__AopProxied`. For a
@@ -29,23 +25,46 @@ can be omitted if the name identifies one property in the object's hierarchy.
 Duplicate independent declarations require an explicit scope:
 
 ```php
-PropertyAccess::set($input, 'tokens', ['parent'], ArgvInput::class);
-PropertyAccess::set($input, 'tokens', 'child', CompletionInput::class);
+$invocation->properties(ArgvInput::class)->tokens = ['parent'];
+$invocation->properties(CompletionInput::class)->tokens = 'child';
 ```
 
-For static properties, pass an object or class name as the first argument:
+The accessor supports array mutation, references, `isset`, and `unset`:
 
 ```php
+$properties = $invocation->properties();
+$properties->data[] = 'appended';
+$reference =& $properties->data;
+isset($properties->data);
+unset($properties->data);
+```
+
+`properties()` is a view of the existing subject, not a replacement for it.
+`getSubject()` still returns the same object. Subject type identity, internal method
+calls, and method interception are unchanged. In static advice, the accessor uses
+the invocation's class; instance properties require an object.
+
+The lower-level `PropertyAccess` API is also available outside an invocation. For
+static properties, pass an object or class name as the first argument:
+
+```php
+use Okapi\Aop\PropertyAccess;
+
 $value = PropertyAccess::get(Service::class, 'configuration', Service::class);
 PropertyAccess::set(Service::class, 'configuration', $value, Service::class);
 ```
 
-The API uses PHP reflection, preserves declared types, and bypasses user-defined
-`__get`/`__set` methods. It returns values, not references; to change an array, read
-it, modify the local array, then write it back. A missing property or an invalid
+Property access uses PHP reflection and closures bound to the declaring scope,
+preserves declared types, and bypasses user-defined `__get`/`__set` methods.
+The lower-level `get()` returns a value; the invocation accessor supports references.
+A missing property or an invalid
 declaring scope throws `ReflectionException`. An ambiguous name or a class-name
 argument for an instance property throws `LogicException`. Uninitialized typed
-properties still throw `Error` on read.
+properties still throw `Error` on read without initializing them. `isset` returns
+false and `unset` does nothing for absent properties; ambiguous names still throw.
+Static properties cannot be unset. Writes must name a declared property; the
+accessor does not create dynamic properties. PHP also prevents taking references
+to readonly properties on subjects whose readonly declarations remain intact.
 
 ## Why private declarations must remain private
 

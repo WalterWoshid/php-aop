@@ -115,6 +115,12 @@ abstract class MethodInvocation
         return $this->subject;
     }
 
+    /** Access the subject's properties, optionally in an original declaring scope. */
+    public function properties(?string $declaringClass = null): PropertyAccessor
+    {
+        return new PropertyAccessor($this->subject ?? $this->className, $declaringClass);
+    }
+
     /**
      * Get the original subject class name of the invocation.
      *

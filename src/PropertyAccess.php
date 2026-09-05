@@ -2,6 +2,8 @@
 namespace Okapi\Aop;
 
 use LogicException;
+use Closure;
+use Error;
 use Okapi\Aop\Core\Cache\CachePaths;
 use ReflectionClass;
 use ReflectionException;
@@ -32,6 +34,50 @@ final class PropertyAccess
     {
         $property = self::resolve($subject, $name, $declaringClass);
         $property->setValue(is_object($subject) ? $subject : null, $value);
+    }
+
+    /** @internal Support indirect writes through an invocation's property accessor. */
+    public static function &reference(object|string $subject, string $name, ?string $declaringClass = null): mixed
+    {
+        $property = self::resolve($subject, $name, $declaringClass);
+        // Acquiring a reference to an uninitialized nullable property initializes
+        // it to null. Reading through the accessor must not introduce that side effect.
+        $property->getValue(is_object($subject) ? $subject : null);
+        $scope = $property->getDeclaringClass()->getName();
+        $read = $property->isStatic()
+            ? Closure::bind(static function &() use ($name) { return self::$$name; }, null, $scope)
+            : Closure::bind(function &() use ($name) { return $this->$name; }, $subject, $scope);
+        $value =& $read();
+        return $value;
+    }
+
+    /** @internal */
+    public static function isSet(object|string $subject, string $name, ?string $declaringClass = null): bool
+    {
+        try {
+            $property = self::resolve($subject, $name, $declaringClass);
+        } catch (ReflectionException) {
+            return false;
+        }
+        $object = is_object($subject) ? $subject : null;
+        return $property->isInitialized($object) && $property->getValue($object) !== null;
+    }
+
+    /** @internal */
+    public static function remove(object|string $subject, string $name, ?string $declaringClass = null): void
+    {
+        try {
+            $property = self::resolve($subject, $name, $declaringClass);
+        } catch (ReflectionException) {
+            return;
+        }
+        if ($property->isStatic()) {
+            throw new Error("Cannot unset static property \$$name.");
+        }
+        $remove = Closure::bind(function () use ($name): void {
+            unset($this->$name);
+        }, $subject, $property->getDeclaringClass()->getName());
+        $remove();
     }
 
     private static function resolve(object|string $subject, string $name, ?string $declaringClass = null): ReflectionProperty
