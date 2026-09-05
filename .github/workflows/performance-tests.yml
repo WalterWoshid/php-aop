@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ ubuntu-latest ]
-        php-version: [ '8.5' ]
+        php-version: [ '8.4', '8.5' ]
 
     name: PHP ${{ matrix.php-version }} performance test on ${{ matrix.operating-system }}
 
@@ -64,7 +64,9 @@ jobs:
             php "${args[@]}" vendor/bin/phpunit --testsuite=Performance --list-tests
             printf 'Discovery exit: %s\n' "$?"
           done
-      - name: Capture native backtrace
+      - name: Verify performance with JIT disabled and OPcache enabled
         run: |
-          if ! command -v gdb; then sudo apt-get update && sudo apt-get install -y gdb; fi
-          gdb --batch -ex run -ex 'thread apply all bt' --args php vendor/bin/phpunit --testsuite=Performance --display-notices
+          grep -R -n -E 'opcache.jit|jit_buffer' /etc/php/${{ matrix.php-version }}/cli || true
+          printf 'opcache.jit=disable\nopcache.jit_buffer_size=0\n' | sudo tee /etc/php/${{ matrix.php-version }}/cli/conf.d/99-disable-jit.ini
+          php -r '$s = opcache_get_status(false); var_export(["opcache_enabled" => $s["opcache_enabled"], "jit" => $s["jit"]]); if (!$s["opcache_enabled"] || $s["jit"]["enabled"]) { exit(1); }'
+          vendor/bin/phpunit --testsuite=Performance --display-notices
