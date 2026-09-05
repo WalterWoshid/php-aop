@@ -5,7 +5,7 @@ namespace Okapi\Aop\Core\Container\JoinPoint;
 use Okapi\Aop\Core\Intercept\Interceptor;
 use Okapi\CodeTransformer\Core\DI;
 
-// TODO: docs
+/** Converts method join points into an interceptor callback. */
 class MethodJoinPointContainer
 {
     private Interceptor $interceptor;
@@ -18,18 +18,19 @@ class MethodJoinPointContainer
      * @param string[]     $joinPoints
      */
     public function __construct(
-        string                 $className,
+        string $className,
         public readonly string $methodName,
-        array                  $joinPoints,
+        array $joinPoints,
     ) {
         $this->interceptor = DI::make(Interceptor::class, [
-            'className'  => $className,
+            'className' => $className,
             'methodName' => $methodName,
             'joinPoints' => $joinPoints,
         ]);
     }
 
-    // TODO: docs
+    /** Converts method join points into an interceptor callback. */
+    /** @return array{Interceptor, string} */
     public function getValue(): array
     {
         return [

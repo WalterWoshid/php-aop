@@ -32,32 +32,19 @@ class SelfTypeTest extends TestCase
 
         $promotedEmployee = $employee->promote($employee, $salaryIncrease);
 
-        $this->assertInstanceOf(Employee::class, $promotedEmployee);
-        $this->assertInstanceOf(AbstractEmployee::class, $promotedEmployee);
-        $this->assertSame(
-            $employee->getName(),
-            $promotedEmployee->getName(),
-        );
-        $this->assertSame(
-            $employee->getSalary() + ($salaryIncrease * 2),
-            $promotedEmployee->getSalary(),
-        );
-
+        static::assertInstanceOf(Employee::class, $promotedEmployee);
+        static::assertInstanceOf(AbstractEmployee::class, $promotedEmployee);
+        static::assertSame($employee->getName(), $promotedEmployee->getName());
+        static::assertSame($employee->getSalary() + ($salaryIncrease * 2), $promotedEmployee->getSalary());
 
         $salaryDecrease = 1000.0;
 
         $demotedEmployee = $promotedEmployee->demote($promotedEmployee, $salaryDecrease);
 
-        $this->assertInstanceOf(PartTimeEmployee::class, $demotedEmployee);
-        $this->assertInstanceOf(Employee::class, $demotedEmployee);
-        $this->assertInstanceOf(AbstractEmployee::class, $demotedEmployee);
-        $this->assertSame(
-            $promotedEmployee->getName(),
-            $demotedEmployee->getName(),
-        );
-        $this->assertSame(
-            $promotedEmployee->getSalary() - $salaryDecrease,
-            $demotedEmployee->getSalary(),
-        );
+        static::assertInstanceOf(PartTimeEmployee::class, $demotedEmployee);
+        static::assertInstanceOf(Employee::class, $demotedEmployee);
+        static::assertInstanceOf(AbstractEmployee::class, $demotedEmployee);
+        static::assertSame($promotedEmployee->getName(), $demotedEmployee->getName());
+        static::assertSame($promotedEmployee->getSalary() - $salaryDecrease, $demotedEmployee->getSalary());
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AspectMatching\AdviceMatchingMultipleClassesAndMethods\Aspect;
 
@@ -11,18 +12,16 @@ use Okapi\Aop\Tests\Functional\AspectMatching\AdviceMatchingMultipleClassesAndMe
 #[Aspect]
 class DiscountAspect
 {
-    #[After(
-        class: Product::class . '|' . Order::class,
-        method: 'get(Price|Total)',
-    )]
+    #[After(class: Product::class . '|' . Order::class, method: 'get(Price|Total)')]
     public function applyDiscount(AfterMethodInvocation $invocation): void
     {
         $subject = $invocation->getSubject();
 
         $productDiscount = 0.1;
-        $orderDiscount   = 0.2;
+        $orderDiscount = 0.2;
 
         if ($subject instanceof Product) {
+            /** @var float $oldPrice */
             $oldPrice = $invocation->proceed();
             $newPrice = $oldPrice - ($oldPrice * $productDiscount);
 
@@ -30,6 +29,7 @@ class DiscountAspect
         }
 
         if ($subject instanceof Order) {
+            /** @var float $oldTotal */
             $oldTotal = $invocation->proceed();
             $newTotal = $oldTotal - ($oldTotal * $orderDiscount);
 

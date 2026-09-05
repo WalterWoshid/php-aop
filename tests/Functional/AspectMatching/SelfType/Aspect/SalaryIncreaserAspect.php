@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AspectMatching\SelfType\Aspect;
 
@@ -10,17 +11,12 @@ use Okapi\Aop\Tests\Functional\AspectMatching\SelfType\Target\AbstractEmployee;
 #[Aspect]
 class SalaryIncreaserAspect
 {
-    #[Before(
-        class: AbstractEmployee::class,
-        method: 'promote',
-    )]
+    #[Before(class: AbstractEmployee::class, method: 'promote')]
     public function increaseSalary(BeforeMethodInvocation $invocation): void
     {
+        /** @var float $salary */
         $salary = $invocation->getArgument('salaryIncrease');
 
-        $invocation->setArgument(
-            'salaryIncrease',
-            $salary * 2,
-        );
+        $invocation->setArgument('salaryIncrease', $salary * 2);
     }
 }

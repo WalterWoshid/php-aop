@@ -28,11 +28,11 @@ class ModifyArgumentTest extends TestCase
         $numbers = [1, 2, 3, 4, 5];
         $expected = 15;
         $actual = $numberHelper->sumArray($numbers);
-        $this->assertEquals($expected, $actual);
+        static::assertEquals($expected, $actual);
 
         $numbers = [1, 2, -3, 4, 5];
         $expected = 12;
         $actual = $numberHelper->sumArray($numbers);
-        $this->assertEquals($expected, $actual);
+        static::assertEquals($expected, $actual);
     }
 }

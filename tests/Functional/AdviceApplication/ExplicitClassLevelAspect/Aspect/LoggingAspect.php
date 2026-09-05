@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceApplication\ExplicitClassLevelAspect\Aspect;
 
@@ -17,26 +18,18 @@ class LoggingAspect
     {
         $methodName = $invocation->getMethodName();
 
-        $logMessage = sprintf(
-            "Method '%s' executed.",
-            $methodName,
-        );
+        $logMessage = sprintf("Method '%s' executed.", $methodName);
 
         $logger = Logger::getInstance();
         $logger->log($logMessage);
     }
 
-    #[Before(
-        method: 'updateInventory',
-    )]
+    #[Before(method: 'updateInventory')]
     public function logUpdateInventory(BeforeMethodInvocation $invocation): void
     {
         $methodName = $invocation->getMethodName();
 
-        $logMessage = sprintf(
-            "Method '%s' executed.",
-            $methodName,
-        );
+        $logMessage = sprintf("Method '%s' executed.", $methodName);
 
         $logger = Logger::getInstance();
         $logger->log($logMessage);

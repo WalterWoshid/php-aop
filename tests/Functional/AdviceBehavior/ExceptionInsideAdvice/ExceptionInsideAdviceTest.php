@@ -27,7 +27,7 @@ class ExceptionInsideAdviceTest extends TestCase
         $commentController = new CommentController();
 
         $commentController->saveComment('This is a good comment');
-        $this->assertTrue(true);
+        static::assertTrue(true);
 
         $this->expectException(Exception::class);
         $this->expectExceptionMessage('Comment contains inappropriate language!');

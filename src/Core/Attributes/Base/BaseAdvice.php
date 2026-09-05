@@ -24,7 +24,7 @@ abstract class BaseAdvice extends BaseAttribute
      * @param int         $order The order of the advice.
      */
     public function __construct(
-        ?string    $class = null,
+        ?string $class = null,
         public int $order = 0,
     ) {
         $this->class = $class ? Regex::fromWildcard($class) : null;

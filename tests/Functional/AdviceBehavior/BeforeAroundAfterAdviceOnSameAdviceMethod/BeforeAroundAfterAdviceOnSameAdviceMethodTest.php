@@ -28,23 +28,23 @@ class BeforeAroundAfterAdviceOnSameAdviceMethodTest extends TestCase
         $calculator = new Calculator();
 
         $result = $calculator->add(2, 3);
-        $this->assertSame(5, $result);
+        static::assertSame(5, $result);
 
         $logger = Logger::getInstance();
 
         $logs = $logger->getLogs();
-        $this->assertCount(3, $logs);
+        static::assertCount(3, $logs);
 
         $log1 = $logs[0];
-        $this->assertSame('Starting calculation...', $log1);
+        static::assertSame('Starting calculation...', $log1);
 
-        $log2     = $logs[1];
+        $log2 = $logs[1];
         $wildcard = 'Calculation took * seconds';
-        $regex    = Regex::fromWildcard($wildcard);
-        $matches  = $regex->matches($log2);
-        $this->assertTrue($matches);
+        $regex = Regex::fromWildcard($wildcard);
+        $matches = $regex->matches($log2);
+        static::assertTrue($matches);
 
         $log3 = $logs[2];
-        $this->assertSame('Calculation result: 5', $log3);
+        static::assertSame('Calculation result: 5', $log3);
     }
 }

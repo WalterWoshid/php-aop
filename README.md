@@ -759,6 +759,8 @@ $firstLog = $logs[0];
 
 
 ## Testing
+
+Development quality checks: see [Mago setup and commands](MAGO.md).
 - Run `composer run-script test`<br>
   or
 - Run `composer run-script test-coverage`

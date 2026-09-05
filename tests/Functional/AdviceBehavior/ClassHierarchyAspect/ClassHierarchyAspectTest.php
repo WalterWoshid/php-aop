@@ -27,21 +27,20 @@ class ClassHierarchyAspectTest extends TestCase
         $emailSender = new EmailSender();
 
         $recipient = 'test@test.com';
-        $subject   = 'Test';
-        $body      = 'Test';
-        $result    = $emailSender->send($recipient, $subject, $body);
+        $subject = 'Test';
+        $body = 'Test';
+        $result = $emailSender->send($recipient, $subject, $body);
 
-        $this->assertTrue($result);
-
+        static::assertTrue($result);
 
         $this->assertAspectNotApplied(SmsSender::class);
         $smsSender = new SmsSender();
 
         $recipient = '123456789';
-        $message   = 'Test';
-        $result    = $smsSender->send($recipient, $message);
+        $message = 'Test';
+        $result = $smsSender->send($recipient, $message);
 
         // Should not throw an error
-        $this->assertTrue($result);
+        static::assertTrue($result);
     }
 }

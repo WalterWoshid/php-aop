@@ -2,6 +2,4 @@
 
 namespace Okapi\Aop\Tests\Functional\AspectMatching\ClassHierarchyOnlyInvokedOnce\Target;
 
-class TargetClassA extends TargetClassB
-{
-}
+class TargetClassA extends TargetClassB {}

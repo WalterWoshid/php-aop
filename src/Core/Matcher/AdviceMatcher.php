@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\Matcher;
 
@@ -32,18 +33,14 @@ class AdviceMatcher
      *
      * @noinspection PhpInconsistentReturnPointsInspection
      */
-    public function match(
-        AdviceContainer       $adviceContainer,
-        BetterReflectionClass $refClass,
-    ): ?AdviceContainer {
+    public function match(AdviceContainer $adviceContainer, BetterReflectionClass $refClass): ?AdviceContainer
+    {
         /** @noinspection PhpSwitchStatementWitSingleBranchInspection */
         switch (true) {
             /** @noinspection PhpConditionAlreadyCheckedInspection */
             case $adviceContainer instanceof MethodAdviceContainer:
-                return $this->methodMatcher->match(
-                    $adviceContainer,
-                    $refClass,
-                );
+                return $this->methodMatcher->match($adviceContainer, $refClass);
         }
+        return null;
     }
 }

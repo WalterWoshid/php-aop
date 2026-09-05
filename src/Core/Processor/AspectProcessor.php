@@ -1,4 +1,5 @@
 <?php
+
 /**
  * @noinspection PhpPropertyOnlyWrittenInspection
  * @noinspection PhpPossiblePolymorphicInvocationInspection
@@ -58,7 +59,8 @@ class AspectProcessor extends TransformerProcessor
 
         // Process the advices
         $wovenFile = null;
-        if ($adviceContainers
+        if (
+            $adviceContainers !== []
             // Don't weave the factory
             && $namespacedClass !== Factory::class
         ) {
@@ -66,24 +68,22 @@ class AspectProcessor extends TransformerProcessor
         }
 
         $originalFilePath = $metadata->uri;
-        $proxyFilePath    = $this->cachePaths->getProxyCachePath($originalFilePath);
-        $wovenFilePath    = $this->cachePaths->getWovenCachePath($originalFilePath);
-        $transformed      = $metadata->code->hasChanges();
+        $cachePaths = $this->cachePaths;
+        if (!$cachePaths instanceof \Okapi\Aop\Core\Cache\CachePaths) {
+            throw new \LogicException('Aspect processing requires AOP cache paths.');
+        }
+        $proxyFilePath = $cachePaths->getProxyCachePath($originalFilePath);
+        $wovenFilePath = $cachePaths->getWovenCachePath($originalFilePath);
+        $transformed = $metadata->code->hasChanges();
 
         // Save the transformed code
         if ($transformed) {
             // Proxy
-            Filesystem::writeFile(
-                $proxyFilePath,
-                $metadata->code->getNewSource(),
-            );
+            Filesystem::writeFile($proxyFilePath, $metadata->code->getNewSource());
 
             // Weaving
             if ($wovenFile) {
-                Filesystem::writeFile(
-                    $wovenFilePath,
-                    $wovenFile,
-                );
+                Filesystem::writeFile($wovenFilePath, $wovenFile);
             }
         }
 
@@ -100,38 +100,42 @@ class AspectProcessor extends TransformerProcessor
 
             $cacheState = DI::make(WovenCacheState::class, [
                 CacheState::DATA => [
-                    CacheState::ORIGINAL_FILE_PATH_KEY          => $originalFilePath,
-                    CacheState::NAMESPACED_CLASS_KEY            => $namespacedClass,
-                    CacheState::MODIFICATION_TIME_KEY           => $modificationTime,
-                    WovenCacheState::PROXY_FILE_PATH_KEY        => $proxyFilePath,
-                    WovenCacheState::WOVEN_FILE_PATH_KEY        => $wovenFilePath,
+                    CacheState::ORIGINAL_FILE_PATH_KEY => $originalFilePath,
+                    CacheState::NAMESPACED_CLASS_KEY => $namespacedClass,
+                    CacheState::MODIFICATION_TIME_KEY => $modificationTime,
+                    WovenCacheState::PROXY_FILE_PATH_KEY => $proxyFilePath,
+                    WovenCacheState::WOVEN_FILE_PATH_KEY => $wovenFilePath,
                     WovenCacheState::TRANSFORMER_FILE_PATHS_KEY => $transformerFilePaths,
-                    WovenCacheState::ADVICE_NAMES_KEY           => $adviceNames,
-                    WovenCacheState::ASPECT_FILE_PATHS_KEY      => $aspectFilePaths,
-                    WovenCacheState::ASPECT_CLASS_NAMES_KEY     => $aspectClassNames,
+                    WovenCacheState::ADVICE_NAMES_KEY => $adviceNames,
+                    WovenCacheState::ASPECT_FILE_PATHS_KEY => $aspectFilePaths,
+                    WovenCacheState::ASPECT_CLASS_NAMES_KEY => $aspectClassNames,
                 ],
             ]);
-        } elseif ($transformed) {
+            $this->cacheStateManager->setCacheState($originalFilePath, $cacheState);
+            return;
+        }
+        if ($transformed) {
             $transformerFilePaths = $this->getTransformerFilePaths($transformerContainers);
 
             $cacheState = DI::make(TransformedCacheState::class, [
                 CacheState::DATA => [
-                    CacheState::ORIGINAL_FILE_PATH_KEY                => $originalFilePath,
-                    CacheState::NAMESPACED_CLASS_KEY                  => $namespacedClass,
-                    CacheState::MODIFICATION_TIME_KEY                 => $modificationTime,
-                    TransformedCacheState::TRANSFORMED_FILE_PATH_KEY  => $proxyFilePath,
+                    CacheState::ORIGINAL_FILE_PATH_KEY => $originalFilePath,
+                    CacheState::NAMESPACED_CLASS_KEY => $namespacedClass,
+                    CacheState::MODIFICATION_TIME_KEY => $modificationTime,
+                    TransformedCacheState::TRANSFORMED_FILE_PATH_KEY => $proxyFilePath,
                     TransformedCacheState::TRANSFORMER_FILE_PATHS_KEY => $transformerFilePaths,
                 ],
             ]);
-        } else {
-            $cacheState = DI::make(NoTransformationsCacheState::class, [
-                CacheState::DATA => [
-                    CacheState::ORIGINAL_FILE_PATH_KEY => $originalFilePath,
-                    CacheState::NAMESPACED_CLASS_KEY   => $namespacedClass,
-                    CacheState::MODIFICATION_TIME_KEY  => $modificationTime,
-                ],
-            ]);
+            $this->cacheStateManager->setCacheState($originalFilePath, $cacheState);
+            return;
         }
+        $cacheState = DI::make(NoTransformationsCacheState::class, [
+            CacheState::DATA => [
+                CacheState::ORIGINAL_FILE_PATH_KEY => $originalFilePath,
+                CacheState::NAMESPACED_CLASS_KEY => $namespacedClass,
+                CacheState::MODIFICATION_TIME_KEY => $modificationTime,
+            ],
+        ]);
 
         $this->cacheStateManager->setCacheState($originalFilePath, $cacheState);
     }
@@ -144,20 +148,15 @@ class AspectProcessor extends TransformerProcessor
      *
      * @return string The woven code
      */
-    private function processAdvices(
-        Metadata $metadata,
-        array    $adviceContainers,
-    ): string {
+    private function processAdvices(Metadata $metadata, array $adviceContainers): string
+    {
         // Sort the advices by priority
-        usort(
-            $adviceContainers,
-            function (AdviceContainer $a, AdviceContainer $b) {
-                $orderA = $a->adviceAttributeInstance->order;
-                $orderB = $b->adviceAttributeInstance->order;
+        usort($adviceContainers, static function (AdviceContainer $a, AdviceContainer $b) {
+            $orderA = $a->adviceAttributeInstance->order;
+            $orderB = $b->adviceAttributeInstance->order;
 
-                return $orderA <=> $orderB;
-            },
-        );
+            return $orderA <=> $orderB;
+        });
 
         $proxiedClassModifier = DI::make(ProxiedClassModifier::class, [
             'metadata' => $metadata,
@@ -166,10 +165,7 @@ class AspectProcessor extends TransformerProcessor
         $proxiedClassModifier->modify();
 
         // Create the weaving file
-        return $this->processAdviceContainers(
-            $adviceContainers,
-            $metadata->code,
-        );
+        return $this->processAdviceContainers($adviceContainers, $metadata->code);
     }
 
     /**
@@ -180,12 +176,10 @@ class AspectProcessor extends TransformerProcessor
      *
      * @return string
      */
-    private function processAdviceContainers(
-        array $adviceContainers,
-        Code  $code,
-    ): string {
+    private function processAdviceContainers(array $adviceContainers, Code $code): string
+    {
         $weavingClassBuilder = DI::make(WovenClassBuilder::class, [
-            'code'             => $code,
+            'code' => $code,
             'adviceContainers' => $adviceContainers,
         ]);
 
@@ -202,9 +196,7 @@ class AspectProcessor extends TransformerProcessor
     protected function getAdviceNames(array $adviceContainers): array
     {
         return array_unique(array_map(
-            function (AdviceContainer $adviceContainer) {
-                return $adviceContainer->getName();
-            },
+            static fn(AdviceContainer $adviceContainer) => $adviceContainer->getName(),
             $adviceContainers,
         ));
     }
@@ -218,12 +210,13 @@ class AspectProcessor extends TransformerProcessor
      */
     protected function getAspectFilePaths(array $adviceContainers): array
     {
-        return array_unique(array_map(
-            function (AdviceContainer $adviceContainer) {
-                return $adviceContainer->aspectRefClass->getFileName();
-            },
-            $adviceContainers,
-        ));
+        return array_unique(array_map(static function (AdviceContainer $adviceContainer) {
+            $filePath = $adviceContainer->aspectRefClass->getFileName();
+            if ($filePath === false) {
+                throw new \LogicException('An aspect must have a source file.');
+            }
+            return $filePath;
+        }, $adviceContainers));
     }
 
     /**
@@ -236,9 +229,7 @@ class AspectProcessor extends TransformerProcessor
     protected function getAspectClassNames(array $adviceContainers): array
     {
         return array_unique(array_map(
-            function (AdviceContainer $adviceContainer) {
-                return $adviceContainer->aspectClassName;
-            },
+            static fn(AdviceContainer $adviceContainer) => $adviceContainer->aspectClassName,
             $adviceContainers,
         ));
     }

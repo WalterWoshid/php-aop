@@ -29,7 +29,7 @@ class IncludeTest extends TestCase
 
         $data = $service->getData();
 
-        $this->assertEquals(
+        static::assertEquals(
             [
                 'd' => 4,
                 'e' => 5,

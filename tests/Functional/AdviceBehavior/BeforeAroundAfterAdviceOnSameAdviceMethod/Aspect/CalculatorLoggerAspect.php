@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\BeforeAroundAfterAdviceOnSameAdviceMethod\Aspect;
 
@@ -15,18 +16,9 @@ use Okapi\Aop\Tests\Stubs\Etc\Logger;
 #[Aspect]
 class CalculatorLoggerAspect
 {
-    #[Before(
-        class: Calculator::class,
-        method: 'add',
-    )]
-    #[Around(
-        class: Calculator::class,
-        method: 'add',
-    )]
-    #[After(
-        class: Calculator::class,
-        method: 'add',
-    )]
+    #[Before(class: Calculator::class, method: 'add')]
+    #[Around(class: Calculator::class, method: 'add')]
+    #[After(class: Calculator::class, method: 'add')]
     public function logCalculation(MethodInvocation $invocation): void
     {
         $adviceType = $invocation->getAdviceType();
@@ -38,7 +30,10 @@ class CalculatorLoggerAspect
         }
 
         if ($adviceType === AdviceType::Around) {
-            assert($invocation instanceof AroundMethodInvocation);
+            assert(
+                $invocation instanceof AroundMethodInvocation,
+                'The invocation must match the configured test fixture.',
+            );
 
             $startTime = microtime(true);
             $invocation->proceed();
@@ -50,6 +45,11 @@ class CalculatorLoggerAspect
         }
 
         if ($adviceType === AdviceType::After) {
+            assert(
+                $invocation instanceof \Okapi\Aop\Invocation\AfterMethodInvocation,
+                'The invocation must match the configured test fixture.',
+            );
+            /** @var int $result */
             $result = $invocation->proceed();
 
             $message = sprintf('Calculation result: %d', $result);

@@ -16,9 +16,6 @@ class MissingClassNameException extends AdviceException
      */
     public function __construct(string $adviceName)
     {
-        parent::__construct(
-            "Advice \"$adviceName\" is being used explicitly and is " .
-            "missing the class name.",
-        );
+        parent::__construct("Advice \"{$adviceName}\" is being used explicitly and is " . 'missing the class name.');
     }
 }

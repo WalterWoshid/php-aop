@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpExpressionResultUnusedInspection */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\Readonly;
 
@@ -20,8 +21,8 @@ class ReadonlyTest extends TestCase
      */
     public function testReadonlyClass(): void
     {
-        if (PHP_VERSION_ID < 80200) {
-            $this->markTestSkipped('Readonly classes are supported only in PHP 8.2 and later.');
+        if (PHP_VERSION_ID < 80_200) {
+            static::markTestSkipped('Readonly classes are supported only in PHP 8.2 and later.');
         }
 
         Util::clearCache();
@@ -31,7 +32,7 @@ class ReadonlyTest extends TestCase
 
         new ReadonlyClass();
 
-        $this->assertTrue(true);
+        static::assertTrue(true);
     }
 
     public function testReadonlyPromotedProperties(): void
@@ -43,6 +44,6 @@ class ReadonlyTest extends TestCase
 
         new ReadonlyPromotedProperties('Walter Woshid', 42);
 
-        $this->assertTrue(true);
+        static::assertTrue(true);
     }
 }

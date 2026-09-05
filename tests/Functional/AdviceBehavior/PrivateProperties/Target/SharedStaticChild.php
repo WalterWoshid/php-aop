@@ -1,4 +1,5 @@
 <?php
+
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target;
 
 class SharedStaticChild extends SharedStaticParent

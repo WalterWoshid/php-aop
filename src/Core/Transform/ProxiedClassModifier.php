@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\Transform;
 
@@ -49,14 +50,14 @@ class ProxiedClassModifier
     /**
      * Callbacks to process tokens.
      *
-     * @var callable<Token>[]
+     * @var list<callable(Token): void>
      */
     private array $tokenCallbacks = [];
 
     /**
      * Callbacks to process nodes.
      *
-     * @var callable<Node>[]
+     * @var list<callable(Node): void>
      */
     private array $nodeCallbacks = [];
 
@@ -75,19 +76,15 @@ class ProxiedClassModifier
     ) {
         $cachePaths = DI::get(CachePaths::class);
 
-        $this->code             = $this->metadata->code;
-        $this->sourceFileNode   = $this->code->getSourceFileNode();
+        $this->code = $this->metadata->code;
+        $this->sourceFileNode = $this->code->getSourceFileNode();
         $this->proxiedClassName = $this->code->getClassName() . $cachePaths::PROXIED_SUFFIX;
     }
 
     /** @noinspection PhpUnused Is used at runtime for proxied classes */
     public static function resolveStaticClass(string $staticClass): string
     {
-        return str_replace(
-            CachePaths::PROXIED_SUFFIX,
-            '',
-            $staticClass,
-        );
+        return str_replace(CachePaths::PROXIED_SUFFIX, '', $staticClass);
     }
 
     /**
@@ -107,32 +104,31 @@ class ProxiedClassModifier
         $sourceFileNode = $this->metadata->code->getSourceFileNode();
 
         // Iterate over the nodes
-        foreach ($sourceFileNode->getDescendantNodes() as $node) {
+        /** @var iterable<Node> $nodes The parser yields nodes; its vendor PHPDoc uses an untyped Generator union. */
+        $nodes = $sourceFileNode->getDescendantNodes();
+        foreach ($nodes as $node) {
             foreach ($this->nodeCallbacks as $callback) {
                 $callback($node);
             }
         }
 
         // Iterate over the tokens
-        foreach ($sourceFileNode->getDescendantTokens() as $token) {
+        /** @var iterable<Token> $tokens */
+        $tokens = $sourceFileNode->getDescendantTokens();
+        foreach ($tokens as $token) {
             foreach ($this->tokenCallbacks as $callback) {
                 $callback($token);
             }
         }
     }
 
-    private function edit(
-        Node|Token $nodeOrToken,
-        string $replacement,
-    ): void {
+    private function edit(Node|Token $nodeOrToken, string $replacement): void
+    {
         if (in_array($nodeOrToken, $this->alreadyProcessed, true)) {
             return;
         }
 
-        $this->code->edit(
-            $nodeOrToken,
-            $replacement,
-        );
+        $this->code->edit($nodeOrToken, $replacement);
 
         $this->alreadyProcessed[] = $nodeOrToken;
     }
@@ -146,18 +142,15 @@ class ProxiedClassModifier
     {
         // Find the class declaration
         $node = $this->sourceFileNode->getFirstDescendantNode(Node\Statement\ClassDeclaration::class);
-        assert($node instanceof Node\Statement\ClassDeclaration);
+        assert($node instanceof Node\Statement\ClassDeclaration, 'The transformed source must declare a class.');
 
         // Replace the class name
-        $this->edit(
-            $node->name,
-            $this->proxiedClassName,
-        );
+        $this->edit($node->name, $this->proxiedClassName);
 
         // Append the child class
         $childClassPath = $this->cachePaths->getWovenCachePath($this->metadata->uri);
         // language=PHP
-        $codeToAppend = "\ninclude_once '$childClassPath';";
+        $codeToAppend = "\ninclude_once '{$childClassPath}';";
         $this->code->append($codeToAppend);
     }
 
@@ -193,9 +186,11 @@ class ProxiedClassModifier
     {
         // A descendant may be loaded after this class. Keep every private property
         // in its declaring scope, even when no same-name property is known yet.
-        foreach ($this->sourceFileNode->getDescendantNodes() as $node) {
+        /** @var iterable<Node> $nodes */
+        $nodes = $this->sourceFileNode->getDescendantNodes();
+        foreach ($nodes as $node) {
             $modifiers = match (true) {
-                $node instanceof Node\PropertyDeclaration => $node->modifiers ?? [],
+                $node instanceof Node\PropertyDeclaration => $node->modifiers,
                 $node instanceof Node\Parameter => array_filter([
                     $node->visibilityToken,
                     ...($node->modifiers ?? []),
@@ -203,20 +198,17 @@ class ProxiedClassModifier
                 default => [],
             };
             foreach ($modifiers as $modifier) {
-                if ($modifier->kind === TokenKind::PrivateKeyword) {
-                    $this->alreadyProcessed[] = $modifier;
+                if ($modifier->kind !== TokenKind::PrivateKeyword) {
+                    continue;
                 }
+
+                $this->alreadyProcessed[] = $modifier;
             }
         }
 
         $this->tokenCallbacks[] = function (Token $token) {
-            if ($token->kind === TokenKind::PrivateKeyword
-                || $token->kind === TokenKind::ProtectedKeyword
-            ) {
-                $this->edit(
-                    $token,
-                    'public',
-                );
+            if ($token->kind === TokenKind::PrivateKeyword || $token->kind === TokenKind::ProtectedKeyword) {
+                $this->edit($token, 'public');
             }
         };
     }
@@ -232,13 +224,16 @@ class ProxiedClassModifier
     {
         $this->nodeCallbacks[] = function (Node $node) {
             // Replace return object types with the proxied class name
-            if ($node instanceof Node\MethodDeclaration
+            if (
+                $node instanceof Node\MethodDeclaration
                 && $node->returnTypeList instanceof Node\DelimitedList\QualifiedNameList
             ) {
                 foreach ($node->returnTypeList->children as $returnType) {
-                    if ($returnType instanceof Node\QualifiedName) {
-                        $this->replaceReturnSelfType($returnType);
+                    if (!$returnType instanceof Node\QualifiedName) {
+                        continue;
                     }
+
+                    $this->replaceReturnSelfType($returnType);
                 }
             }
 
@@ -258,15 +253,11 @@ class ProxiedClassModifier
      *
      * @return void
      */
-    private function replaceReturnSelfType(
-        Node\QualifiedName $qualifiedName,
-    ): void {
+    private function replaceReturnSelfType(Node\QualifiedName $qualifiedName): void
+    {
         // Self
         if ($qualifiedName->getText() === 'self') {
-            $this->edit(
-                $qualifiedName,
-                $this->proxiedClassName,
-            );
+            $this->edit($qualifiedName, $this->proxiedClassName);
         }
     }
 
@@ -277,13 +268,9 @@ class ProxiedClassModifier
      *
      * @return void
      */
-    private function replaceObjectCreationSelfType(
-        Node\Expression\ObjectCreationExpression $objectCreationExpression,
-    ): void {
-        $this->edit(
-            $objectCreationExpression->classTypeDesignator,
-            '\\' . $this->code->getNamespacedClass(),
-        );
+    private function replaceObjectCreationSelfType(Node\Expression\ObjectCreationExpression $objectCreationExpression): void
+    {
+        $this->edit($objectCreationExpression->classTypeDesignator, '\\' . $this->code->getNamespacedClass());
     }
 
     // endregion
@@ -305,19 +292,19 @@ class ProxiedClassModifier
                     case '__DIR__':
                         $originalParentDir = dirname($this->getOriginalFileDir());
 
-                        $this->edit($node, "'$originalParentDir'");
+                        $this->edit($node, "'{$originalParentDir}'");
                         break;
 
                     case '__FILE__':
                         $originalFileDir = $this->getOriginalFileDir();
 
-                        $this->edit($node, "'$originalFileDir'");
+                        $this->edit($node, "'{$originalFileDir}'");
                         break;
 
                     case '__CLASS__':
                         $originalNamespacedClassName = $this->code->getNamespacedClass();
 
-                        $this->edit($node, "'$originalNamespacedClassName'");
+                        $this->edit($node, "'{$originalNamespacedClassName}'");
                         break;
 
                     case '__METHOD__':
@@ -325,34 +312,25 @@ class ProxiedClassModifier
                         if (!$methodNode) {
                             break;
                         }
-                        assert($methodNode instanceof Node\MethodDeclaration);
+                        assert($methodNode instanceof Node\MethodDeclaration, 'The enclosing node must be a method.');
 
                         $originalNamespacedClassName = $this->code->getNamespacedClass();
                         $originalMethodName = $methodNode->getName();
 
-                        $this->edit(
-                            $node,
-                            "'$originalNamespacedClassName::$originalMethodName'",
-                        );
+                        $this->edit($node, "'{$originalNamespacedClassName}::{$originalMethodName}'");
                         break;
 
                     case 'self':
                         $originalClassName = $this->code->getClassName();
 
-                        $this->edit(
-                            $node,
-                            $originalClassName,
-                        );
+                        $this->edit($node, $originalClassName);
                         break;
                 }
             }
 
             if ($node instanceof Node\Expression\ScopedPropertyAccessExpression) {
                 if ($node->getText() === 'static::class') {
-                    $this->edit(
-                        $node,
-                        '\\' . self::class . '::resolveStaticClass(static::class)',
-                    );
+                    $this->edit($node, '\\' . self::class . '::resolveStaticClass(static::class)');
                 }
             }
         };

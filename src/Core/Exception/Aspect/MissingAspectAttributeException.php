@@ -20,8 +20,6 @@ class MissingAspectAttributeException extends AspectException
      */
     public function __construct(string $aspectName)
     {
-        parent::__construct(
-            'Aspect "' . $aspectName . '" is missing the #[Aspect] attribute.'
-        );
+        parent::__construct('Aspect "' . $aspectName . '" is missing the #[Aspect] attribute.');
     }
 }

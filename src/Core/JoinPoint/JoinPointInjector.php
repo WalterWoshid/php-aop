@@ -30,20 +30,16 @@ class JoinPointInjector
         $refClass = new BaseReflectionClass($className);
 
         // Read the join points
-        $staticPropertyValue = $refClass->getStaticPropertyValue(
-            JoinPoint::JOIN_POINTS_PARAMETER_NAME,
-        );
+        /** @var array<'method', array<string, string[]>> $staticPropertyValue */
+        $staticPropertyValue = $refClass->getStaticPropertyValue(JoinPoint::JOIN_POINTS_PARAMETER_NAME, null);
 
         // Convert to JoinPointContainer
         $joinPointContainer = DI::make(JoinPointContainer::class, [
-            'className'              => $className,
+            'className' => $className,
             'joinPointPropertyValue' => $staticPropertyValue,
         ]);
 
         // Set the join points
-        $refClass->setStaticPropertyValue(
-            JoinPoint::JOIN_POINTS_PARAMETER_NAME,
-            $joinPointContainer->getValue(),
-        );
+        $refClass->setStaticPropertyValue(JoinPoint::JOIN_POINTS_PARAMETER_NAME, $joinPointContainer->getValue());
     }
 }

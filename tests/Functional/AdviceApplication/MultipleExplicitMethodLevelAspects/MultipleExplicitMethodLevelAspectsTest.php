@@ -32,17 +32,16 @@ class MultipleExplicitMethodLevelAspectsTest extends TestCase
         $accountService->createAccount(['id' => $id]);
 
         $accounts = $accountService->getAccounts();
-        $this->assertCount(1, $accounts);
+        static::assertCount(1, $accounts);
 
         $firstAccount = $accounts[0];
-        $this->assertStringEndsWith(SecurityAspect::SECRET_HASH, $firstAccount);
+        static::assertStringEndsWith(SecurityAspect::SECRET_HASH, $firstAccount);
 
         /** @noinspection PhpUnhandledExceptionInspection */
         $accountService->deleteAccount($id);
 
         $accounts = $accountService->getAccounts();
-        $this->assertCount(0, $accounts);
-
+        static::assertCount(0, $accounts);
 
         $this->assertWillBeWoven(TransactionService::class);
         $transactionService = new TransactionService();
@@ -50,15 +49,15 @@ class MultipleExplicitMethodLevelAspectsTest extends TestCase
         $transactionService->createTransaction(['id' => $id]);
 
         $transactions = $transactionService->getTransactions();
-        $this->assertCount(1, $transactions);
+        static::assertCount(1, $transactions);
 
         $firstTransaction = $transactions[0];
-        $this->assertStringEndsWith(SecurityAspect::SECRET_HASH, $firstTransaction);
+        static::assertStringEndsWith(SecurityAspect::SECRET_HASH, $firstTransaction);
 
         /** @noinspection PhpUnhandledExceptionInspection */
         $transactionService->rollbackTransaction($id);
 
         $transactions = $transactionService->getTransactions();
-        $this->assertCount(0, $transactions);
+        static::assertCount(0, $transactions);
     }
 }

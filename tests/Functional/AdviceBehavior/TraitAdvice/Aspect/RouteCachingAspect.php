@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\TraitAdvice\Aspect;
 
@@ -10,12 +11,10 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\TraitAdvice\Target\RouteCaching;
 #[Aspect]
 class RouteCachingAspect
 {
+    /** @var array<string, array<string, list<string>>> */
     public static array $cachedRoutes = [];
 
-    #[Around(
-        class: RouteCaching::class,
-        method: 'getRoutes',
-    )]
+    #[Around(class: RouteCaching::class, method: 'getRoutes')]
     public function cacheRoutes(AroundMethodInvocation $invocation): void
     {
         $arguments = $invocation->getArguments();
@@ -28,16 +27,19 @@ class RouteCachingAspect
             return;
         }
 
+        /** @var array<string, list<string>> $routes */
         $routes = $invocation->proceed();
 
         $this->storeInCache($cacheKey, $routes);
     }
 
+    /** @return array<string, list<string>>|null */
     private function getFromCache(string $cacheKey): ?array
     {
         return self::$cachedRoutes[$cacheKey] ?? null;
     }
 
+    /** @param array<string, list<string>> $routes */
     private function storeInCache(string $cacheKey, array $routes): void
     {
         self::$cachedRoutes[$cacheKey] = $routes;

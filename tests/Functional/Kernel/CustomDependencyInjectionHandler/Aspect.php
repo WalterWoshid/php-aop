@@ -8,10 +8,7 @@ use Okapi\Aop\Attributes\Aspect as AspectAttribute;
 #[AspectAttribute]
 class Aspect
 {
-    #[After(
-        class: Target::class,
-        method: 'answer',
-    )]
+    #[After(class: Target::class, method: 'answer')]
     public function higherAnswer(): int
     {
         return 420;

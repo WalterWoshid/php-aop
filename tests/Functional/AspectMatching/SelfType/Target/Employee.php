@@ -11,6 +11,10 @@ class Employee extends AbstractEmployee
 
     public function promote(AbstractEmployee|int $employee, float $salaryIncrease): self|int
     {
+        if (is_int($employee)) {
+            return $employee;
+        }
+
         $promotedSalary = $employee->getSalary() + $salaryIncrease;
 
         return new self($employee->getName(), $promotedSalary);

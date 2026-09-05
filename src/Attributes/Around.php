@@ -11,6 +11,4 @@ use Okapi\Aop\Core\Attributes\AdviceType\MethodAdvice;
  * This attribute is used to mark a method as an around advice.
  */
 #[Attribute(Attribute::TARGET_METHOD | Attribute::IS_REPEATABLE)]
-class Around extends MethodAdvice
-{
-}
+class Around extends MethodAdvice {}

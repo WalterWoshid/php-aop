@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnhandledExceptionInspection */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\NewClassCreationWithProxiedClasses;
 
@@ -34,13 +35,11 @@ class NewClassCreationWithProxiedClassesTest extends TestCase
 
         $container = $containerBuilder->build();
 
+        /** @var mixed $service */
         $service = $container->get(GroupMemberService::class);
 
-        $this->assertInstanceOf(GroupMemberService::class, $service);
-        $this->assertEquals(
-            'Original Policy Details',
-            $service->getPolicyDetails(),
-        );
+        static::assertInstanceOf(GroupMemberService::class, $service);
+        static::assertSame('Original Policy Details', $service->getPolicyDetails());
     }
 
     public function testManualDefinition(): void
@@ -51,21 +50,20 @@ class NewClassCreationWithProxiedClassesTest extends TestCase
         $containerBuilder = new ContainerBuilder();
         $containerBuilder->addDefinitions([
             GroupPolicy::class => DI\create(GroupPolicy::class),
-            GroupMemberService::class => static function (ContainerInterface $container) {
-                return new GroupMemberService(
-                    $container->get(GroupPolicy::class)
-                );
-            }
+            GroupMemberService::class => static function (ContainerInterface $container): GroupMemberService {
+                /** @var mixed $policy */
+                $policy = $container->get(GroupPolicy::class);
+                static::assertInstanceOf(GroupPolicy::class, $policy);
+                return new GroupMemberService($policy);
+            },
         ]);
 
         $container = $containerBuilder->build();
 
+        /** @var mixed $service */
         $service = $container->get(GroupMemberService::class);
 
-        $this->assertInstanceOf(GroupMemberService::class, $service);
-        $this->assertEquals(
-            'Original Policy Details',
-            $service->getPolicyDetails(),
-        );
+        static::assertInstanceOf(GroupMemberService::class, $service);
+        static::assertSame('Original Policy Details', $service->getPolicyDetails());
     }
 }

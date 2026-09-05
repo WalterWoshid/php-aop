@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\BeforeAroundAfterAdviceOnSameTargetMethod\Aspect;
 
@@ -17,12 +18,10 @@ use Okapi\Aop\Tests\Stubs\Etc\MailQueue;
 #[Aspect]
 class PaymentProcessorAspect
 {
-    #[Before(
-        class: PaymentProcessor::class,
-        method: 'processPayment',
-    )]
+    #[Before(class: PaymentProcessor::class, method: 'processPayment')]
     public function checkPaymentAmount(BeforeMethodInvocation $invocation): void
     {
+        /** @var float $amount */
         $amount = $invocation->getArgument('amount');
 
         if ($amount < 0) {
@@ -30,49 +29,35 @@ class PaymentProcessorAspect
         }
     }
 
-    #[Around(
-        class: PaymentProcessor::class,
-        method: 'processPayment',
-    )]
+    #[Around(class: PaymentProcessor::class, method: 'processPayment')]
     public function logPayment(AroundMethodInvocation $invocation): void
     {
         $startTime = microtime(true);
 
         $invocation->proceed();
 
-        $endTime     = microtime(true);
+        $endTime = microtime(true);
         $elapsedTime = $endTime - $startTime;
 
+        /** @var float $amount */
         $amount = $invocation->getArgument('amount');
 
-        $logMessage = sprintf(
-            'Payment processed for amount $%.2f in %.2f seconds',
-            $amount,
-            $elapsedTime,
-        );
+        $logMessage = sprintf('Payment processed for amount $%.2f in %.2f seconds', $amount, $elapsedTime);
 
         $logger = Logger::getInstance();
         $logger->log($logMessage);
     }
 
-    #[After(
-        class: PaymentProcessor::class,
-        method: 'processPayment',
-    )]
+    #[After(class: PaymentProcessor::class, method: 'processPayment')]
     public function sendEmailNotification(AfterMethodInvocation $invocation): void
     {
+        /** @var bool $result */
         $result = $invocation->proceed();
+        /** @var float $amount */
         $amount = $invocation->getArgument('amount');
 
-        $message = sprintf(
-            'Payment processed for amount $%.2f',
-            $amount,
-        );
-        if ($result === true) {
-            $message .= ' - Payment successful';
-        } else {
-            $message .= ' - Payment failed';
-        }
+        $message = sprintf('Payment processed for amount $%.2f', $amount);
+        $message .= $result ? ' - Payment successful' : ' - Payment failed';
 
         $mailQueue = MailQueue::getInstance();
         $mailQueue->addMail($message);

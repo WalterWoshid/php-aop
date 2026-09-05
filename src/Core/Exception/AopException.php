@@ -9,6 +9,4 @@ use RuntimeException;
  *
  * Base exception for all AOP exceptions.
  */
-abstract class AopException extends RuntimeException
-{
-}
+abstract class AopException extends RuntimeException {}

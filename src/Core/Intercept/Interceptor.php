@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\Intercept;
 
@@ -56,18 +57,14 @@ class Interceptor
     public function __construct(
         private readonly string $className,
         private readonly string $methodName,
-        array                   $joinPoints,
+        array $joinPoints,
     ) {
         $joinPointHandler = DI::make(JoinPointHandler::class, [
-            'className'  => $className,
+            'className' => $className,
             'joinPoints' => $joinPoints,
         ]);
 
-        $joinPointHandler->handle(
-            $this->beforeInterceptors,
-            $this->aroundInterceptors,
-            $this->afterInterceptors,
-        );
+        $joinPointHandler->handle($this->beforeInterceptors, $this->aroundInterceptors, $this->afterInterceptors);
 
         $this->targetRefClass = new BaseReflectionClass($className);
     }
@@ -87,7 +84,7 @@ class Interceptor
     public function intercept(?object $subject, array $arguments = []): mixed
     {
         foreach ($this->beforeInterceptors as $beforeInterceptor) {
-            $aspectInstance  = $beforeInterceptor->aspectInstance;
+            $aspectInstance = $beforeInterceptor->aspectInstance;
             $adviceRefMethod = $beforeInterceptor->adviceRefMethod;
 
             $invocation = $this->invocationFactory->getInvocation(
@@ -104,36 +101,41 @@ class Interceptor
             $arguments = $invocation->getArguments();
         }
 
+        $aroundAdviceChain = null;
         if ($this->aroundInterceptors) {
             $aroundAdviceChain = DI::make(AdviceChain::class, [
-                'interceptors'   => $this->aroundInterceptors,
-                'subject'        => $subject,
-                'className'      => $this->className,
-                'methodName'     => $this->methodName,
-                'arguments'      => &$arguments,
+                'interceptors' => $this->aroundInterceptors,
+                'subject' => $subject,
+                'className' => $this->className,
+                'methodName' => $this->methodName,
+                'arguments' => &$arguments,
                 'originalMethod' => function () use ($subject, &$arguments) {
+                    /** @var array<array-key, mixed> $arguments */
                     return $this->callParentMethod($subject, $arguments);
                 },
             ]);
-
-            $result = $aroundAdviceChain->proceed();
-        } else {
-            $result = $this->callParentMethod($subject, $arguments);
         }
+        /** @var array<array-key, mixed> $arguments */
+        /** @var mixed $result */
+        $result = $aroundAdviceChain !== null
+            ? $aroundAdviceChain->proceed()
+            : $this->callParentMethod($subject, $arguments);
 
         if ($this->afterInterceptors) {
             $afterAdviceChain = DI::make(AdviceChain::class, [
-                'interceptors'             => $this->afterInterceptors,
-                'subject'                  => $subject,
-                'className'                => $this->className,
-                'methodName'               => $this->methodName,
-                'arguments'                => &$arguments,
-                'originalMethod'           => function () use ($subject, &$arguments) {
+                'interceptors' => $this->afterInterceptors,
+                'subject' => $subject,
+                'className' => $this->className,
+                'methodName' => $this->methodName,
+                'arguments' => &$arguments,
+                'originalMethod' => function () use ($subject, &$arguments) {
+                    /** @var array<array-key, mixed> $arguments */
                     return $this->callParentMethod($subject, $arguments);
                 },
                 'resultFromOriginalMethod' => $result,
             ]);
 
+            /** @var mixed $result */
             $result = $afterAdviceChain->proceed();
         }
 
@@ -155,6 +157,9 @@ class Interceptor
     {
         $parentClass = $this->targetRefClass->getParentClass();
 
+        if ($parentClass === false) {
+            throw new \LogicException('An intercepted class must have a woven parent.');
+        }
         $parentMethod = $parentClass->getMethod($this->methodName);
 
         $this->unwrapVariadicParameters($parentMethod, $args);
@@ -179,7 +184,12 @@ class Interceptor
         if ($lastParameter && $lastParameter->isVariadic()) {
             $lastParameterName = $lastParameter->getName();
 
-            $variadicParameterValues = array_values($args[$lastParameterName]);
+            /** @var mixed $variadicArguments */
+            $variadicArguments = $args[$lastParameterName];
+            if (!is_array($variadicArguments)) {
+                throw new \LogicException('Variadic arguments must be an array.');
+            }
+            $variadicParameterValues = array_values($variadicArguments);
 
             unset($args[$lastParameterName]);
 

@@ -1,7 +1,9 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\Invocation;
 
+use Closure;
 use DI\Attribute\Inject;
 use Okapi\Aop\Attributes\After;
 use Okapi\Aop\Core\Container\AdviceType\MethodAdviceContainer;
@@ -23,6 +25,8 @@ class AdviceChain
     // endregion
 
     private int $currentInterceptorIndex = 0;
+
+    private readonly ?Closure $originalMethod;
 
     /**
      * Stores the result of the target method.
@@ -52,14 +56,15 @@ class AdviceChain
      * @noinspection PhpMissingParamTypeInspection
      */
     public function __construct(
-        private readonly array   $interceptors,
+        private readonly array $interceptors,
         private readonly ?object $subject,
-        private readonly string  $className,
-        private readonly string  $methodName,
-        private array            &$arguments,
-        private                  $originalMethod = null,
-        private readonly mixed   $resultFromOriginalMethod = null,
+        private readonly string $className,
+        private readonly string $methodName,
+        private array &$arguments,
+        ?callable $originalMethod = null,
+        private readonly mixed $resultFromOriginalMethod = null,
     ) {
+        $this->originalMethod = $originalMethod === null ? null : Closure::fromCallable($originalMethod);
         if ($this->interceptors[0]->adviceAttributeInstance instanceof After) {
             $this->setResult($this->resultFromOriginalMethod);
         }
@@ -81,7 +86,7 @@ class AdviceChain
             $interceptor = $this->interceptors[$this->currentInterceptorIndex];
             $this->currentInterceptorIndex++;
 
-            $aspectInstance  = $interceptor->aspectInstance;
+            $aspectInstance = $interceptor->aspectInstance;
             $adviceRefMethod = $interceptor->adviceRefMethod;
 
             // Get invocation
@@ -99,6 +104,7 @@ class AdviceChain
             $invocation->setAdviceChain($this);
 
             // Call the advice method
+            /** @var mixed $result */
             $result = $adviceRefMethod->invoke($aspectInstance, $invocation);
 
             // Check if the advice method will return a value
@@ -124,13 +130,14 @@ class AdviceChain
         // 3. Return the result from the original method
         if ($this->resultHasBeenSet && !$allowRepeatedCalls) {
             return $this->result;
-        } elseif ($this->originalMethod) {
+        }
+        if ($this->originalMethod) {
+            /** @var mixed $result */
             $result = ($this->originalMethod)(...array_values($this->arguments));
             $this->setResult($result);
             return $result;
-        } else {
-            return $this->resultFromOriginalMethod;
         }
+        return $this->resultFromOriginalMethod;
     }
 
     /**

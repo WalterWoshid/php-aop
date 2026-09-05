@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\JoinPoint;
 
@@ -30,23 +31,20 @@ class JoinPointHandler
      */
     public function __construct(
         private readonly string $className,
-        private readonly array  $joinPoints,
+        private readonly array $joinPoints,
     ) {}
 
     /**
      * Add the matched advices to the given interceptor arrays.
      *
-     * @param array $beforeInterceptors
-     * @param array $aroundInterceptors
-     * @param array $afterInterceptors
+     * @param \Okapi\Aop\Core\Container\AdviceType\MethodAdviceContainer[] $beforeInterceptors
+     * @param \Okapi\Aop\Core\Container\AdviceType\MethodAdviceContainer[] $aroundInterceptors
+     * @param \Okapi\Aop\Core\Container\AdviceType\MethodAdviceContainer[] $afterInterceptors
      *
      * @return void
      */
-    public function handle(
-        array &$beforeInterceptors,
-        array &$aroundInterceptors,
-        array &$afterInterceptors,
-    ): void {
+    public function handle(array &$beforeInterceptors, array &$aroundInterceptors, array &$afterInterceptors): void
+    {
         foreach ($this->joinPoints as $joinPoint) {
             $adviceContainers = $this->aspectMatcher->getMatchedAdviceContainersByJoinPoint(
                 $this->className,

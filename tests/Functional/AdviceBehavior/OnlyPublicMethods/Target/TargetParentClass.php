@@ -4,8 +4,7 @@ namespace Okapi\Aop\Tests\Functional\AdviceBehavior\OnlyPublicMethods\Target;
 
 class TargetParentClass
 {
-    public function parentHelloWorld() {}
+    public function parentHelloWorld(): void {}
 
-    protected function parentHelloHere() {}
+    protected function parentHelloHere(): void {}
 }
-

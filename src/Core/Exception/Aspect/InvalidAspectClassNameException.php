@@ -16,8 +16,6 @@ class InvalidAspectClassNameException extends AspectException
      */
     public function __construct()
     {
-        parent::__construct(
-            'Aspect class name in Kernel must be a string.',
-        );
+        parent::__construct('Aspect class name in Kernel must be a string.');
     }
 }

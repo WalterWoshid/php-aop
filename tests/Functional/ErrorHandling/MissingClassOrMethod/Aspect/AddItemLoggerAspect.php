@@ -10,19 +10,15 @@ use Okapi\Aop\Tests\Stubs\Etc\Logger;
 #[Aspect]
 class AddItemLoggerAspect
 {
-    #[After(
-        method: 'addItem',
-    )]
+    #[After(method: 'addItem')]
     public function logAddItem(AfterMethodInvocation $invocation): void
     {
+        /** @var string $itemName */
         $itemName = $invocation->getArgument('itemName');
+        /** @var int $quantity */
         $quantity = $invocation->getArgument('quantity');
 
-        $logMessage = sprintf(
-            "Item %s added to inventory with quantity %d.",
-            $itemName,
-            $quantity,
-        );
+        $logMessage = sprintf('Item %s added to inventory with quantity %d.', $itemName, $quantity);
 
         $logger = Logger::getInstance();
         $logger->log($logMessage);

@@ -10,16 +10,13 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\Include\Target\SecureDatabaseServi
 #[Aspect]
 class DatabaseModifierAspect
 {
-    #[After(
-        class: SecureDatabaseService::class,
-        method: 'load',
-    )]
+    #[After(class: SecureDatabaseService::class, method: 'load')]
     public function modifyData(AfterMethodInvocation $invocation): void
     {
-        $invocation->properties()->data = [
+        $invocation->properties()->__set('data', [
             'd' => 4,
             'e' => 5,
             'f' => 6,
-        ];
+        ]);
     }
 }

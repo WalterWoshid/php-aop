@@ -35,29 +35,15 @@ class MethodMatcher
             // Basically the same as $refClassToMatch->getImmediateMethods(),
             // but this also includes the methods from traits, because traits
             // cannot be woven
-            $declaringClass     = $refMethodToMatch->getDeclaringClass();
+            $declaringClass = $refMethodToMatch->getDeclaringClass();
             $declaringClassName = $declaringClass->getName();
-            if (!$declaringClass->isTrait()
-                && $declaringClassName !== $refClassToMatchName
-            ) {
+            if (!$declaringClass->isTrait() && $declaringClassName !== $refClassToMatchName) {
                 continue;
             }
 
-            // Match explicit aspects
-            if ($methodAdviceContainer->isExplicit()) {
-                $newMethodAdviceContainer = $this->matchExplicit(
-                    $methodAdviceContainer,
-                    $refMethodToMatch,
-                    $newMethodAdviceContainer,
-                );
-            } else {
-                // Match implicit aspects
-                $newMethodAdviceContainer = $this->matchImplicit(
-                    $methodAdviceContainer,
-                    $refMethodToMatch,
-                    $newMethodAdviceContainer,
-                );
-            }
+            $newMethodAdviceContainer = $methodAdviceContainer->isExplicit()
+                ? $this->matchExplicit($methodAdviceContainer, $refMethodToMatch, $newMethodAdviceContainer)
+                : $this->matchImplicit($methodAdviceContainer, $refMethodToMatch, $newMethodAdviceContainer);
         }
 
         return $newMethodAdviceContainer;
@@ -79,46 +65,35 @@ class MethodMatcher
     ): ?MethodAdviceContainer {
         $aspectClassName = $methodAdviceContainer->aspectClassName;
 
-        // Match class attributes
+        // Match class attributes.
         $declaringClass = $refMethodToMatch->getDeclaringClass();
         foreach ($declaringClass->getAttributes() as $refAttribute) {
-            if ($refAttribute->getName() === $aspectClassName) {
-                $adviceAttributeInstance = $methodAdviceContainer->adviceAttributeInstance;
-
-                // Advices without method are applied to all methods
-                if ($adviceAttributeInstance->method === null) {
-                    $newMethodAdviceContainer = $this->createNewMethodAdviceContainer(
-                        $methodAdviceContainer,
-                        $newMethodAdviceContainer,
-                    );
-
-                    $newMethodAdviceContainer->addMatchedMethod($refMethodToMatch);
-                } else {
-                    $methodNameToMatch = $refMethodToMatch->getName();
-                    $methodRegex       = $adviceAttributeInstance->method;
-
-                    if ($methodRegex->matches($methodNameToMatch)) {
-                        $newMethodAdviceContainer = $this->createNewMethodAdviceContainer(
-                            $methodAdviceContainer,
-                            $newMethodAdviceContainer,
-                        );
-
-                        $newMethodAdviceContainer->addMatchedMethod($refMethodToMatch);
-                    }
-                }
+            if ($refAttribute->getName() !== $aspectClassName) {
+                continue;
             }
+
+            $methodRegex = $methodAdviceContainer->adviceAttributeInstance->method;
+            // Advices without a method pattern apply to all methods.
+            if ($methodRegex !== null && !$methodRegex->matches($refMethodToMatch->getName())) {
+                continue;
+            }
+            $newMethodAdviceContainer = $this->createNewMethodAdviceContainer(
+                $methodAdviceContainer,
+                $newMethodAdviceContainer,
+            );
+            $newMethodAdviceContainer->addMatchedMethod($refMethodToMatch);
         }
 
-        // Match method attributes
+        // Match method attributes.
         foreach ($refMethodToMatch->getAttributes() as $refAttribute) {
-            if ($refAttribute->getName() === $aspectClassName) {
-                $newMethodAdviceContainer = $this->createNewMethodAdviceContainer(
-                    $methodAdviceContainer,
-                    $newMethodAdviceContainer,
-                );
-
-                $newMethodAdviceContainer->addMatchedMethod($refMethodToMatch);
+            if ($refAttribute->getName() !== $aspectClassName) {
+                continue;
             }
+            $newMethodAdviceContainer = $this->createNewMethodAdviceContainer(
+                $methodAdviceContainer,
+                $newMethodAdviceContainer,
+            );
+            $newMethodAdviceContainer->addMatchedMethod($refMethodToMatch);
         }
 
         return $newMethodAdviceContainer;
@@ -141,20 +116,22 @@ class MethodMatcher
         $methodNameToMatch = $refMethodToMatch->getName();
 
         // Only public methods
-        if ($methodAdviceContainer->adviceAttributeInstance->onlyPublicMethods
+        if (
+            $methodAdviceContainer->adviceAttributeInstance->onlyPublicMethods
             && !($refMethodToMatch->getModifiers() & BaseReflectionMethod::IS_PUBLIC)
         ) {
             return $newMethodAdviceContainer;
         }
 
         // Intercept trait methods
-        if (!$methodAdviceContainer->adviceAttributeInstance->interceptTraitMethods
+        if (
+            !$methodAdviceContainer->adviceAttributeInstance->interceptTraitMethods
             && $refMethodToMatch->getDeclaringClass()->isTrait()
         ) {
             return $newMethodAdviceContainer;
         }
 
-        if ($methodAdviceContainer->adviceAttributeInstance->method->matches($methodNameToMatch)) {
+        if ($methodAdviceContainer->adviceAttributeInstance->method?->matches($methodNameToMatch)) {
             $newMethodAdviceContainer = $this->createNewMethodAdviceContainer(
                 $methodAdviceContainer,
                 $newMethodAdviceContainer,

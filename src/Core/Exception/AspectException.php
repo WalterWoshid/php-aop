@@ -7,6 +7,4 @@ namespace Okapi\Aop\Core\Exception;
  *
  * This exception is thrown when an aspect is not valid.
  */
-abstract class AspectException extends AopException
-{
-}
+abstract class AspectException extends AopException {}

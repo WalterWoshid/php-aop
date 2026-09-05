@@ -20,18 +20,24 @@ class Transformer extends TransformerClass
     {
         $sourceFileNode = $code->getSourceFileNode();
 
+        /** @var \Microsoft\PhpParser\Node $node */
         foreach ($sourceFileNode->getDescendantNodes() as $node) {
-            if ($node instanceof QualifiedNameList
-                && $node->getFirstAncestor(MethodDeclaration::class)?->getName() === 'answer'
+            $method = $node->getFirstAncestor(MethodDeclaration::class);
+            if (
+                $node instanceof QualifiedNameList
+                && $method instanceof MethodDeclaration
+                && $method->getName() === 'answer'
             ) {
                 $code->edit($node, 'int|float');
             }
 
-            if ($node instanceof NumericLiteral
-                && $node->getFirstAncestor(MethodDeclaration::class)?->getName() === 'answer'
+            if (
+                $node instanceof NumericLiteral
+                && $method instanceof MethodDeclaration
+                && $method->getName() === 'answer'
             ) {
                 $text = $node->getText();
-                $code->edit($node, "$text.69");
+                $code->edit($node, "{$text}.69");
             }
         }
     }

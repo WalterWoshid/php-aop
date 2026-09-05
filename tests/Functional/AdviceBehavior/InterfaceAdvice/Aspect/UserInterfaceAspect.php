@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\InterfaceAdvice\Aspect;
 
@@ -9,10 +10,7 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\InterfaceAdvice\Target\UserInterfa
 #[Aspect]
 class UserInterfaceAspect
 {
-    #[After(
-        class: UserInterface::class,
-        method: 'getName',
-    )]
+    #[After(class: UserInterface::class, method: 'getName')]
     public function modifyName(): string
     {
         return 'Jane Doe';

@@ -35,7 +35,7 @@ class OnlyPublicMethodsTest extends TestCase
         $targetClass->askTraitHelloHere();
 
         $stackTrace = StackTrace::getInstance();
-        $this->assertEquals(
+        static::assertEquals(
             [
                 // Call to $targetClass->helloWorld() = 2 Advice invocations
                 'DefaultAspect helloWorld',

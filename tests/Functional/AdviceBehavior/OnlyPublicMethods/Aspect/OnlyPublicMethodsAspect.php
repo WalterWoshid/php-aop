@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\OnlyPublicMethods\Aspect;
 
@@ -18,6 +19,6 @@ class OnlyPublicMethodsAspect
     public function validateContent(AfterMethodInvocation $invocation): void
     {
         $stackTrace = StackTrace::getInstance();
-        $stackTrace->addTrace('OnlyPublicMethodsAspect '.$invocation->getMethodName());
+        $stackTrace->addTrace('OnlyPublicMethodsAspect ' . $invocation->getMethodName());
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AspectMatching\ClassHierarchyOnlyInvokedOnce;
 
@@ -19,6 +20,6 @@ class Aspect
         $count++;
 
         $stackTrace = StackTrace::getInstance();
-        $stackTrace->addTrace("Method call $count");
+        $stackTrace->addTrace("Method call {$count}");
     }
 }

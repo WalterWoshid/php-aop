@@ -30,7 +30,7 @@ class ClassHierarchyOnlyInvokedOnceTest extends TestCase
 
         $stackTrace = StackTrace::getInstance();
 
-        $this->assertEquals(
+        static::assertEquals(
             [
                 'Method call 1',
                 'Method call 2',

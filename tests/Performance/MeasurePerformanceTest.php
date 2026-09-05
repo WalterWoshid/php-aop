@@ -3,17 +3,21 @@
 namespace Okapi\Aop\Tests\Performance;
 
 use Exception;
-use Okapi\Aop\Tests\Performance\Kernel\MeasurePerformanceKernel;
-use Okapi\Aop\Tests\Performance\Service\NumbersService;
+use Okapi\Aop\AopKernel;
+use Okapi\Aop\Tests\Performance\Service\NumbersServiceInterface;
 use Okapi\Aop\Tests\Performance\Target\Numbers;
 use Okapi\Aop\Tests\Util;
 use Okapi\Filesystem\Filesystem;
-use PHPUnit\Framework\Attributes\{DataProvider, RunTestsInSeparateProcesses, Test};
+use PHPUnit\Framework\Attributes\DataProvider;
+use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
+use ReflectionClass;
+use Symfony\Component\Console\Helper\Table;
+use Symfony\Component\Console\Helper\TableStyle;
 use Symfony\Component\Console\Input\ArgvInput;
-use Symfony\Component\Console\Style\SymfonyStyle;
-use Symfony\Component\Console\Helper\{Table, TableStyle};
 use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Style\SymfonyStyle;
 
 #[RunTestsInSeparateProcesses]
 class MeasurePerformanceTest extends TestCase
@@ -22,52 +26,55 @@ class MeasurePerformanceTest extends TestCase
     private bool $cached;
     private bool $production;
 
-    private CONST MEASURE_TYPE_NO_ASPECTS     = 'No Aspects';
-    private CONST MEASURE_TYPE_ASPECTS        = 'Aspects';
-    private CONST MEASURE_TYPE_CACHED_ASPECTS = 'Cached Aspects';
-    private CONST MEASURE_TYPE_PRODUCTION     = 'Production';
+    private const MEASURE_TYPE_NO_ASPECTS = 'No Aspects';
+    private const MEASURE_TYPE_ASPECTS = 'Aspects';
+    private const MEASURE_TYPE_CACHED_ASPECTS = 'Cached Aspects';
+    private const MEASURE_TYPE_PRODUCTION = 'Production';
 
+    /** @var array<string, array<string, array<string, int|float>>> */
     private array $measures = [
-        self::MEASURE_TYPE_NO_ASPECTS     => [],
-        self::MEASURE_TYPE_ASPECTS        => [],
+        self::MEASURE_TYPE_NO_ASPECTS => [],
+        self::MEASURE_TYPE_ASPECTS => [],
         self::MEASURE_TYPE_CACHED_ASPECTS => [],
-        self::MEASURE_TYPE_PRODUCTION     => [],
+        self::MEASURE_TYPE_PRODUCTION => [],
     ];
 
     private const MEASURE_TYPE_FROM_START_TO_END = 'From Start to End';
-    private const MEASURE_TYPE_BOOT              = 'Boot Time - Kernel::init()';
-    private const MEASURE_TYPE_CLASS_LOADING     = 'Class Loading Time';
-    private const MEASURE_TYPE_EXECUTION         = 'Execution Time';
+    private const MEASURE_TYPE_BOOT = 'Boot Time - Kernel::init()';
+    private const MEASURE_TYPE_CLASS_LOADING = 'Class Loading Time';
+    private const MEASURE_TYPE_EXECUTION = 'Execution Time';
 
-    private const START_TIME   = 'Start Time';
-    private const END_TIME     = 'End Time';
+    private const START_TIME = 'Start Time';
+    private const END_TIME = 'End Time';
     private const START_MEMORY = 'Start Memory';
-    private const END_MEMORY   = 'End Memory';
+    private const END_MEMORY = 'End Memory';
 
-    private const METRIC_TYPE_TIME   = 'Time';
+    private const METRIC_TYPE_TIME = 'Time';
     private const METRIC_TYPE_MEMORY = 'Memory';
 
+    /** @var non-empty-list<array{positive-int, positive-int}> */
     public static array $aspectCountAndExecutionCount = [
-        [1, 1],       // Minimal
-        [5, 5],       // Small
-        [20, 20],     // Moderate
-        [50, 50],     // Medium
-        [100, 100],   // Common
-        [500, 100],   // Common: Aspects++
-        [100, 500],   // Common: Executions++
-        [500, 500],   // High
-        [1000, 500],  // High: Aspects++
-        [500, 1000],  // High: Executions++
+        [1, 1], // Minimal
+        [5, 5], // Small
+        [20, 20], // Moderate
+        [50, 50], // Medium
+        [100, 100], // Common
+        [500, 100], // Common: Aspects++
+        [100, 500], // Common: Executions++
+        [500, 500], // High
+        [1000, 500], // High: Aspects++
+        [500, 1000], // High: Executions++
         [1000, 1000], // Very High
     ];
 
+    /** @return array<string, array{aspectCount: int, executionCount: int, useAspects?: bool, cached?: bool, production?: bool}> */
     public static function dataProvider(): array
     {
         $flags = [
-            self::MEASURE_TYPE_NO_ASPECTS     => [],
-            self::MEASURE_TYPE_ASPECTS        => ['useAspects' => true],
+            self::MEASURE_TYPE_NO_ASPECTS => [],
+            self::MEASURE_TYPE_ASPECTS => ['useAspects' => true],
             self::MEASURE_TYPE_CACHED_ASPECTS => ['useAspects' => true, 'cached' => true],
-            self::MEASURE_TYPE_PRODUCTION     => ['useAspects' => true,  'cached' => true, 'production' => true],
+            self::MEASURE_TYPE_PRODUCTION => ['useAspects' => true, 'cached' => true, 'production' => true],
         ];
 
         $data = [];
@@ -79,30 +86,30 @@ class MeasurePerformanceTest extends TestCase
 
                 $aspectsLabel = $aspectCount === 1 ? 'aspect' : 'aspects';
                 $executionLabel = $executionCount === 1 ? 'execution' : 'executions';
-                $dataProviderLabel = "$measureType: $aspectCount $aspectsLabel, $executionCount $executionLabel";
+                $dataProviderLabel = "{$measureType}: {$aspectCount} {$aspectsLabel}, {$executionCount} {$executionLabel}";
 
                 $data[$dataProviderLabel] = [
-                    'aspectCount'    => $aspectCount,
+                    'aspectCount' => $aspectCount,
                     'executionCount' => $executionCount,
-                    'useAspects'     => $flag['useAspects'] ?? false,
-                    'cached'         => $flag['cached'] ?? false,
-                    'production'     => $flag['production'] ?? false,
+                    'useAspects' => $flag['useAspects'] ?? false,
+                    'cached' => $flag['cached'] ?? false,
+                    'production' => $flag['production'] ?? false,
                 ];
             }
         }
 
         // Cleanup data
         $data['Cleanup'] = [
-            'aspectCount'    => 0,
+            'aspectCount' => 0,
             'executionCount' => 0,
         ];
 
         // Number of tests should equal the number of generated data sets
         $dataCount = count($data);
-        $expectedDataCount = count(self::$aspectCountAndExecutionCount) * count($flags) + 1;
+        $expectedDataCount = (count(self::$aspectCountAndExecutionCount) * count($flags)) + 1;
         if ($dataCount !== $expectedDataCount) {
             /** @noinspection PhpUnhandledExceptionInspection */
-            throw new Exception("Expected $expectedDataCount data sets, got $dataCount");
+            throw new Exception("Expected {$expectedDataCount} data sets, got {$dataCount}");
         }
 
         if (extension_loaded('xdebug')) {
@@ -129,15 +136,14 @@ class MeasurePerformanceTest extends TestCase
         $noFlags = !$useAspects && !$cached && !$production;
         $lastMeasure = $useAspects && $cached && $production;
 
-        $firstRun = $aspectCount === self::$aspectCountAndExecutionCount[0][0]
+        $firstRun =
+            $aspectCount === self::$aspectCountAndExecutionCount[0][0]
             && $executionCount === self::$aspectCountAndExecutionCount[0][1]
             && $noFlags;
 
-        $shouldCleanCache = $firstRun || ($useAspects && !$cached);
+        $shouldCleanCache = $firstRun || $useAspects && !$cached;
 
-        $lastRun = $aspectCount === 0
-            && $executionCount === 0
-            && $noFlags;
+        $lastRun = $aspectCount === 0 && $executionCount === 0 && $noFlags;
 
         if ($firstRun) {
             $this->cleanup();
@@ -153,38 +159,43 @@ class MeasurePerformanceTest extends TestCase
             return;
         }
 
-        /** @var class-string<NumbersService>[] $services */
+        /** @var class-string<NumbersServiceInterface>[] $services */
         $services = [];
         if ($useAspects) {
             // Create $aspectCount aspects and a kernel that uses them
             $kernel = $this->createKernelAndAspects($aspectCount, $production);
-        } else {
+        }
+        if (!$useAspects) {
             // Emulate aspects by creating $aspectCount services
             $services = $this->createServices($aspectCount);
         }
 
         $this->useAspects = $useAspects;
-        $this->cached     = $cached;
+        $this->cached = $cached;
         $this->production = $production;
 
         $this->startMeasure(self::MEASURE_TYPE_FROM_START_TO_END);
         $this->startMeasure(self::MEASURE_TYPE_BOOT);
 
         if ($useAspects) {
-            /** @var MeasurePerformanceKernel $kernel */
+            /** @var class-string<AopKernel> $kernel */
             $kernel::init();
         }
 
-        $this->  endMeasure(self::MEASURE_TYPE_BOOT);
+        $this->endMeasure(self::MEASURE_TYPE_BOOT);
         $this->startMeasure(self::MEASURE_TYPE_CLASS_LOADING);
 
         $numbersClass = new Numbers();
 
-        /** @var NumbersService[] $serviceInstances */
+        /** @var NumbersServiceInterface[] $serviceInstances */
         $serviceInstances = [];
         if (!$useAspects) {
             foreach ($services as $service) {
-                $serviceInstances[] = new $service();
+                $serviceClass = new ReflectionClass($service);
+                if (!$serviceClass->isInstantiable()) {
+                    throw new Exception('Expected an instantiable benchmark service');
+                }
+                $serviceInstances[] = $serviceClass->newInstance();
             }
         }
 
@@ -205,7 +216,8 @@ class MeasurePerformanceTest extends TestCase
                 // $expectedResults[] = $aspectCount;
                 // $actualResults[] = $result;
             }
-        } else {
+        }
+        if (!$useAspects) {
             foreach (range(1, $aspectCount) as $i) {
                 $numbersService = $serviceInstances[$i - 1];
 
@@ -231,50 +243,46 @@ class MeasurePerformanceTest extends TestCase
         $this->saveMeasuresToFile();
 
         if ($lastMeasure) {
-            $this->printMeasures($this->dataName());
+            $this->printMeasures((string) $this->dataName());
         }
 
         $this->assertTrue(true);
     }
 
     /**
-     * @return class-string<MeasurePerformanceKernel>
+     * @return class-string<AopKernel>
      */
-    private function createKernelAndAspects(
-        int $aspectCount,
-        bool $production
-    ): string {
+    private function createKernelAndAspects(int $aspectCount, bool $production): string
+    {
         $tempDirectory = __DIR__ . '/Temp';
         if (!file_exists($tempDirectory)) {
             Filesystem::mkdir($tempDirectory);
         }
 
-        $newKernelFilePath      = "$tempDirectory/MeasurePerformanceKernel$aspectCount.php";
-        $newKernelFileNamespace = "\\Okapi\\Aop\\Tests\\Performance\\Temp\\MeasurePerformanceKernel$aspectCount";
+        $newKernelFilePath = "{$tempDirectory}/MeasurePerformanceKernel{$aspectCount}.php";
+        /** @var class-string<AopKernel> $newKernelFileNamespace */
+        $newKernelFileNamespace = "\\Okapi\\Aop\\Tests\\Performance\\Temp\\MeasurePerformanceKernel{$aspectCount}";
 
-        static $kernelFile;
+        /** @var string|null $kernelFile */
+        static $kernelFile = null;
         if (!$kernelFile) {
             $kernelFile = Filesystem::readFile(__DIR__ . '/Kernel/MeasurePerformanceKernel.php');
         }
 
         $originalAspectLineNumber = 0;
-        $originalAspectLine       = '';
-        $lines                    = explode("\n", $kernelFile);
+        $originalAspectLine = '';
+        $lines = explode("\n", $kernelFile);
         foreach ($lines as $lineNumber => &$line) {
             // Replace namespace
             if (str_contains($line, 'namespace Okapi\\Aop\\Tests\\Performance\\Kernel')) {
-                $line = str_replace(
-                    search: 'Kernel',
-                    replace: 'Temp',
-                    subject: $line,
-                );
+                $line = str_replace(search: 'Kernel', replace: 'Temp', subject: $line);
             }
 
             // Replace class name
             if (str_contains($line, 'class MeasurePerformanceKernel')) {
                 $line = str_replace(
                     search: 'MeasurePerformanceKernel',
-                    replace: "MeasurePerformanceKernel$aspectCount",
+                    replace: "MeasurePerformanceKernel{$aspectCount}",
                     subject: $line,
                 );
             }
@@ -282,7 +290,7 @@ class MeasurePerformanceTest extends TestCase
             // Find the line where the "AddOneAspect" is added to the kernel
             if (str_contains($line, 'AddOneAspect::class,')) {
                 $originalAspectLineNumber = $lineNumber;
-                $originalAspectLine       = $line;
+                $originalAspectLine = $line;
                 break;
             }
 
@@ -300,17 +308,18 @@ class MeasurePerformanceTest extends TestCase
         foreach (range(1, $aspectCount) as $aspectNumber) {
             $aspects[] = str_replace(
                 search: 'Aspect\\AddOneAspect::class,',
-                replace: "Temp\\AddOneAspect$aspectNumber::class,",
+                replace: "Temp\\AddOneAspect{$aspectNumber}::class,",
                 subject: $originalAspectLine,
             );
 
             // Read aspect file
-            static $aspectFile;
+            /** @var string|null $aspectFile */
+            static $aspectFile = null;
             if (!$aspectFile) {
                 $aspectFile = Filesystem::readFile(__DIR__ . '/Aspect/AddOneAspect.php');
             }
 
-            $newAspectFilePath = __DIR__ . "/Temp/AddOneAspect$aspectNumber.php";
+            $newAspectFilePath = __DIR__ . "/Temp/AddOneAspect{$aspectNumber}.php";
             if (file_exists($newAspectFilePath)) {
                 continue;
             }
@@ -327,15 +336,12 @@ class MeasurePerformanceTest extends TestCase
             // Replace class name
             $newAspectFile = str_replace(
                 search: 'class AddOneAspect',
-                replace: "class AddOneAspect$aspectNumber",
+                replace: "class AddOneAspect{$aspectNumber}",
                 subject: $newAspectFile,
             );
 
             // Write aspect file
-            Filesystem::writeFile(
-                $newAspectFilePath,
-                $newAspectFile,
-            );
+            Filesystem::writeFile($newAspectFilePath, $newAspectFile);
 
             $this->cacheFile($newAspectFilePath);
         }
@@ -347,10 +353,7 @@ class MeasurePerformanceTest extends TestCase
         $kernelFile = implode("\n", $lines);
 
         // Write kernel file
-        Filesystem::writeFile(
-            $newKernelFilePath,
-            $kernelFile,
-        );
+        Filesystem::writeFile($newKernelFilePath, $kernelFile);
 
         $this->cacheFile($newKernelFilePath);
 
@@ -360,7 +363,7 @@ class MeasurePerformanceTest extends TestCase
     }
 
     /**
-     * @return class-string<NumbersService>[]
+     * @return class-string<NumbersServiceInterface>[]
      */
     private function createServices(int $serviceCount): array
     {
@@ -372,15 +375,17 @@ class MeasurePerformanceTest extends TestCase
         $services = [];
         foreach (range(1, $serviceCount) as $serviceNumber) {
             // Read service file
-            static $serviceFile;
+            /** @var string|null $serviceFile */
+            static $serviceFile = null;
             if (!$serviceFile) {
                 $serviceFile = Filesystem::readFile(__DIR__ . '/Service/NumbersService.php');
             }
 
-            $serviceNamespace = "\\Okapi\\Aop\\Tests\\Performance\\Temp\\NumbersService$serviceNumber";
+            /** @var class-string<NumbersServiceInterface> $serviceNamespace */
+            $serviceNamespace = "\\Okapi\\Aop\\Tests\\Performance\\Temp\\NumbersService{$serviceNumber}";
             $services[] = $serviceNamespace;
 
-            $newServiceFilePath = __DIR__ . "/Temp/NumbersService$serviceNumber.php";
+            $newServiceFilePath = __DIR__ . "/Temp/NumbersService{$serviceNumber}.php";
             if (file_exists($newServiceFilePath)) {
                 continue;
             }
@@ -397,15 +402,12 @@ class MeasurePerformanceTest extends TestCase
             // Replace class name
             $newServiceFile = str_replace(
                 search: 'class NumbersService',
-                replace: "class NumbersService$serviceNumber",
+                replace: "class NumbersService{$serviceNumber}",
                 subject: $newServiceFile,
             );
 
             // Write service file
-            Filesystem::writeFile(
-                $newServiceFilePath,
-                $newServiceFile,
-            );
+            Filesystem::writeFile($newServiceFilePath, $newServiceFile);
 
             $this->cacheFile($newServiceFilePath);
         }
@@ -425,12 +427,12 @@ class MeasurePerformanceTest extends TestCase
     private function dumpAutoload(): void
     {
         $workingDir = __DIR__ . '/../..';
-        $workingDir = (DIRECTORY_SEPARATOR === '\\')
+        $workingDir = DIRECTORY_SEPARATOR === '\\'
             ? str_replace('/', '\\', $workingDir)
             : str_replace('\\', '/', $workingDir);
 
         ob_start();
-        shell_exec("composer dump-autoload -d $workingDir -o -q");
+        shell_exec("composer dump-autoload -d {$workingDir} -o -q");
         ob_end_clean();
     }
 
@@ -456,20 +458,50 @@ class MeasurePerformanceTest extends TestCase
     {
         $tempDirectory = __DIR__ . '/Temp';
 
-        $measuresFile = "$tempDirectory/measures.json";
-        if (!file_exists($measuresFile)) {
-            $measures = $this->measures;
-        } else {
-            $measures = json_decode(Filesystem::readFile($measuresFile), true);
+        $measuresFile = "{$tempDirectory}/measures.json";
+        $measures = $this->measures;
+        if (file_exists($measuresFile)) {
+            $measures = $this->readMeasures($measuresFile);
             $measures[$this->getMeasureType()] = $this->measures[$this->getMeasureType()];
         }
 
         // Save it every execution, because #[RunTestsInSeparateProcesses]
         // will not store $this->measures between executions
-        Filesystem::writeFile(
-            $measuresFile,
-            json_encode($measures, JSON_PRETTY_PRINT)
-        );
+        Filesystem::writeFile($measuresFile, json_encode($measures, JSON_PRETTY_PRINT | JSON_THROW_ON_ERROR));
+    }
+
+    /** @return array<string, array<string, array<string, int|float>>> */
+    private function readMeasures(string $path): array
+    {
+        /** @var mixed $decoded */
+        $decoded = json_decode(Filesystem::readFile($path), true, flags: JSON_THROW_ON_ERROR);
+        if (!is_array($decoded)) {
+            throw new Exception('Expected measurement groups in ' . $path);
+        }
+
+        $measures = [];
+        /** @var mixed $group */
+        foreach ($decoded as $type => $group) {
+            if (!is_string($type) || !is_array($group)) {
+                throw new Exception('Invalid measurement group in ' . $path);
+            }
+            $measures[$type] = [];
+            /** @var mixed $metrics */
+            foreach ($group as $name => $metrics) {
+                if (!is_string($name) || !is_array($metrics)) {
+                    throw new Exception('Invalid measurement in ' . $path);
+                }
+                $measures[$type][$name] = [];
+                /** @var mixed $value */
+                foreach ($metrics as $metric => $value) {
+                    if (!is_string($metric) || !is_int($value) && !is_float($value)) {
+                        throw new Exception('Invalid measurement metric in ' . $path);
+                    }
+                    $measures[$type][$name][$metric] = $value;
+                }
+            }
+        }
+        return $measures;
     }
 
     private function getMeasureType(): string
@@ -493,14 +525,11 @@ class MeasurePerformanceTest extends TestCase
 
     private function printMeasures(string $dataProviderLabel): void
     {
-        $this->measures = json_decode(
-            json: Filesystem::readFile(__DIR__ . '/Temp/measures.json'),
-            associative: true,
-        );
+        $this->measures = $this->readMeasures(__DIR__ . '/Temp/measures.json');
 
         // Remove the last measure, because it's the cleanup
         $dataProviderLabel = str_replace(
-            search: array_key_last($this->measures) . ': ',
+            search: (array_key_last($this->measures) ?? '') . ': ',
             replace: '',
             subject: $dataProviderLabel,
         );
@@ -514,22 +543,22 @@ class MeasurePerformanceTest extends TestCase
         $io->section($dataProviderLabel);
 
         // First Table
-        $output->writeln("<fg=cyan>Table 1: Without Aspects vs With Aspects ($dataProviderLabel)</>");
+        $output->writeln("<fg=cyan>Table 1: Without Aspects vs With Aspects ({$dataProviderLabel})</>");
         $this->printTable($output, self::MEASURE_TYPE_ASPECTS);
 
         // Second Table
         $output->writeln('');
-        $output->writeln("<fg=cyan>Table 2: Without Aspects vs With Cached Aspects ($dataProviderLabel)</>");
+        $output->writeln("<fg=cyan>Table 2: Without Aspects vs With Cached Aspects ({$dataProviderLabel})</>");
         $this->printTable($output, self::MEASURE_TYPE_CACHED_ASPECTS);
 
         // Third Table
         $output->writeln('');
-        $output->writeln("<fg=cyan>Table 3: Without Aspects vs Production ($dataProviderLabel)</>");
+        $output->writeln("<fg=cyan>Table 3: Without Aspects vs Production ({$dataProviderLabel})</>");
         $this->printTable($output, self::MEASURE_TYPE_PRODUCTION);
 
         // Fourth Table
         $output->writeln('');
-        $output->writeln("<fg=cyan>Table 4: With Cached Aspects vs Production ($dataProviderLabel)</>");
+        $output->writeln("<fg=cyan>Table 4: With Cached Aspects vs Production ({$dataProviderLabel})</>");
         $this->printTable($output, self::MEASURE_TYPE_PRODUCTION, self::MEASURE_TYPE_CACHED_ASPECTS);
 
         $output->writeln('');
@@ -538,7 +567,7 @@ class MeasurePerformanceTest extends TestCase
     private function printTable(
         ConsoleOutput $output,
         string $comparisonAspect,
-        string $compareToType = self::MEASURE_TYPE_NO_ASPECTS
+        string $compareToType = self::MEASURE_TYPE_NO_ASPECTS,
     ): void {
         $table = new Table($output);
 
@@ -580,33 +609,32 @@ class MeasurePerformanceTest extends TestCase
         $table->render();
     }
 
+    /** @return list<string> */
     private function generateRowData(
         string $measureType,
         string $comparisonAspect,
         string $compareToType,
-        string $metricType
+        string $metricType,
     ): array {
         // Get start and end metrics
-        $startMetric = $metricType === self::METRIC_TYPE_TIME
-            ? self::START_TIME
-            : self::START_MEMORY;
+        $startMetric = $metricType === self::METRIC_TYPE_TIME ? self::START_TIME : self::START_MEMORY;
 
-        $endMetric = $metricType === self::METRIC_TYPE_TIME
-            ? self::END_TIME
-            : self::END_MEMORY;
+        $endMetric = $metricType === self::METRIC_TYPE_TIME ? self::END_TIME : self::END_MEMORY;
 
         // Calculate without aspects
-        $withoutAspectsValue = $this->measures[$compareToType][$measureType][$endMetric]
+        $withoutAspectsValue =
+            $this->measures[$compareToType][$measureType][$endMetric]
             - $this->measures[$compareToType][$measureType][$startMetric];
 
         // Calculate with aspects
-        $comparisonValue = $this->measures[$comparisonAspect][$measureType][$endMetric]
+        $comparisonValue =
+            $this->measures[$comparisonAspect][$measureType][$endMetric]
             - $this->measures[$comparisonAspect][$measureType][$startMetric];
 
         // For memory, convert to MB
         if ($metricType === self::METRIC_TYPE_MEMORY) {
-            $withoutAspectsValue /= (1024 * 1024);
-            $comparisonValue /= (1024 * 1024);
+            $withoutAspectsValue /= 1024 * 1024;
+            $comparisonValue /= 1024 * 1024;
         }
 
         // Calculate difference
@@ -622,22 +650,19 @@ class MeasurePerformanceTest extends TestCase
 
         // Prefix difference with + or -
         $prefix = $difference > 0 ? '+' : '';
-        $differenceText = "$prefix$difference";
+        $differenceText = "{$prefix}{$difference}";
 
         // Append unit
-        if ($metricType === self::METRIC_TYPE_TIME) {
-            $append = ' s';
-        } else {
-            $append = ' MB';
-        }
+        $append = $metricType === self::METRIC_TYPE_TIME ? ' s' : ' MB';
         $withoutAspectsValue .= $append;
         $comparisonValue .= $append;
         $differenceText .= $append;
 
         if ($difference > 0) {
-            $differenceText = "<fg=red>$differenceText</>";
-        } elseif ($difference < 0) {
-            $differenceText = "<fg=green>$differenceText</>";
+            $differenceText = "<fg=red>{$differenceText}</>";
+        }
+        if ($difference < 0) {
+            $differenceText = "<fg=green>{$differenceText}</>";
         }
 
         return [

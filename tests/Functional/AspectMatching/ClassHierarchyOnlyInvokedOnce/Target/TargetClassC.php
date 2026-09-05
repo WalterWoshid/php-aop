@@ -4,5 +4,5 @@ namespace Okapi\Aop\Tests\Functional\AspectMatching\ClassHierarchyOnlyInvokedOnc
 
 class TargetClassC
 {
-    public function helloWorld() {}
+    public function helloWorld(): void {}
 }

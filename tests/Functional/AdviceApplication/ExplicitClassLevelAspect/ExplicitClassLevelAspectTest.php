@@ -50,7 +50,7 @@ class ExplicitClassLevelAspectTest extends TestCase
 
         $logger = Logger::getInstance();
 
-        $logs  = $logger->getLogs();
+        $logs = $logger->getLogs();
         $this->assertCount(6, $logs);
 
         $updateInventoryExecuted = 0;
@@ -61,7 +61,8 @@ class ExplicitClassLevelAspectTest extends TestCase
         foreach ($logs as $log) {
             if ($log === $updateInventoryLog) {
                 $updateInventoryExecuted++;
-            } elseif ($log === $checkInventoryLog) {
+            }
+            if ($log === $checkInventoryLog) {
                 $checkInventoryExecuted++;
             }
         }

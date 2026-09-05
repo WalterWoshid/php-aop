@@ -3,19 +3,19 @@
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants;
 
 use Okapi\Aop\Tests\ClassLoaderMockTrait;
-use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Kernel\{KernelOnClass,
-    KernelOnClassAndParent,
-    KernelOnClassAndParentAndTrait,
-    KernelOnClassAndTrait,
-    KernelOnParent,
-    KernelOnParentAndTrait,
-    KernelOnTrait};
-use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target\{TargetClass,
-    TargetClass82,
-    TargetParent,
-    TargetParent82,
-    TargetTrait,
-    TargetTrait82};
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Kernel\KernelOnClass;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Kernel\KernelOnClassAndParent;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Kernel\KernelOnClassAndParentAndTrait;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Kernel\KernelOnClassAndTrait;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Kernel\KernelOnParent;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Kernel\KernelOnParentAndTrait;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Kernel\KernelOnTrait;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target\TargetClass;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target\TargetClass82;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target\TargetParent;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target\TargetParent82;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target\TargetTrait;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target\TargetTrait82;
 use Okapi\Aop\Tests\Util;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\ExpectationFailedException;
@@ -32,19 +32,24 @@ class MagicConstantsTest extends TestCase
 {
     use ClassLoaderMockTrait;
 
+    /** @var class-string<TargetClass|TargetClass82> */
     private string $targetClass = TargetClass::class;
+    /** @var class-string<TargetParent|TargetParent82> */
     private string $targetParentClass = TargetParent::class;
 
-    private const PREFIX_TARGET_PATH       = '/tests/Functional/AdviceBehavior/MagicConstants/Target';
+    private const PREFIX_TARGET_PATH = '/tests/Functional/AdviceBehavior/MagicConstants/Target';
+
     private string $prefixTargetClassPath = self::PREFIX_TARGET_PATH . '/TargetClass.php';
     private string $prefixTargetTraitPath = self::PREFIX_TARGET_PATH . '/TargetTrait.php';
     private string $prefixTargetParentPath = self::PREFIX_TARGET_PATH . '/TargetParent.php';
 
-    private const NAMESPACE_TARGET       = 'Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target';
+    private const NAMESPACE_TARGET = 'Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target';
+
     private string $namespaceTargetClass = TargetClass::class;
     private string $namespaceTargetTrait = TargetTrait::class;
     private string $namespaceTargetParent = TargetParent::class;
 
+    /** @param non-empty-string $name */
     public function __construct(string $name)
     {
         parent::__construct($name);
@@ -66,7 +71,7 @@ class MagicConstantsTest extends TestCase
 
     public function testMagicConstantsWithoutAop(): void
     {
-        $this->test(new $this->targetClass);
+        $this->test($this->newTarget());
     }
 
     // Class
@@ -76,7 +81,7 @@ class MagicConstantsTest extends TestCase
         KernelOnClass::init();
 
         $this->assertWillBeWoven($this->targetClass);
-        $this->test(new $this->targetClass);
+        $this->test($this->newTarget());
     }
 
     // Class (Cached)
@@ -85,7 +90,7 @@ class MagicConstantsTest extends TestCase
         KernelOnClass::init();
 
         $this->assertAspectLoadedFromCache($this->targetClass);
-        $this->test(new $this->targetClass);
+        $this->test($this->newTarget());
     }
 
     // Parent
@@ -96,7 +101,7 @@ class MagicConstantsTest extends TestCase
 
         $this->assertWillBeWoven($this->targetParentClass);
         $this->assertWillBeWoven($this->targetClass);
-        $this->test(new $this->targetClass, $this->namespaceTargetParent);
+        $this->test($this->newTarget(), $this->namespaceTargetParent);
     }
 
     // Parent (Cached)
@@ -106,7 +111,7 @@ class MagicConstantsTest extends TestCase
 
         $this->assertAspectLoadedFromCache($this->targetParentClass);
         $this->assertAspectLoadedFromCache($this->targetClass);
-        $this->test(new $this->targetClass, $this->namespaceTargetParent);
+        $this->test($this->newTarget(), $this->namespaceTargetParent);
     }
 
     // Trait
@@ -116,7 +121,7 @@ class MagicConstantsTest extends TestCase
         KernelOnTrait::init();
 
         $this->assertWillBeWoven($this->targetClass);
-        $this->test(new $this->targetClass);
+        $this->test($this->newTarget());
     }
 
     // Trait (Cached)
@@ -125,7 +130,7 @@ class MagicConstantsTest extends TestCase
         KernelOnTrait::init();
 
         $this->assertAspectLoadedFromCache($this->targetClass);
-        $this->test(new $this->targetClass);
+        $this->test($this->newTarget());
     }
 
     // Class + Parent
@@ -136,7 +141,7 @@ class MagicConstantsTest extends TestCase
 
         $this->assertWillBeWoven($this->targetParentClass);
         $this->assertWillBeWoven($this->targetClass);
-        $this->test(new $this->targetClass, $this->namespaceTargetParent);
+        $this->test($this->newTarget(), $this->namespaceTargetParent);
     }
 
     // Class + Parent (Cached)
@@ -146,7 +151,7 @@ class MagicConstantsTest extends TestCase
 
         $this->assertAspectLoadedFromCache($this->targetParentClass);
         $this->assertAspectLoadedFromCache($this->targetClass);
-        $this->test(new $this->targetClass, $this->namespaceTargetParent);
+        $this->test($this->newTarget(), $this->namespaceTargetParent);
     }
 
     // Class + Trait
@@ -156,7 +161,7 @@ class MagicConstantsTest extends TestCase
         KernelOnClassAndTrait::init();
 
         $this->assertWillBeWoven($this->targetClass);
-        $this->test(new $this->targetClass);
+        $this->test($this->newTarget());
     }
 
     // Class + Trait (Cached)
@@ -165,7 +170,7 @@ class MagicConstantsTest extends TestCase
         KernelOnClassAndTrait::init();
 
         $this->assertAspectLoadedFromCache($this->targetClass);
-        $this->test(new $this->targetClass);
+        $this->test($this->newTarget());
     }
 
     // Parent + Trait
@@ -176,7 +181,7 @@ class MagicConstantsTest extends TestCase
 
         $this->assertWillBeWoven($this->targetParentClass);
         $this->assertWillBeWoven($this->targetClass);
-        $this->test(new $this->targetClass, $this->namespaceTargetParent);
+        $this->test($this->newTarget(), $this->namespaceTargetParent);
     }
 
     // Parent + Trait (Cached)
@@ -186,7 +191,7 @@ class MagicConstantsTest extends TestCase
 
         $this->assertAspectLoadedFromCache($this->targetParentClass);
         $this->assertAspectLoadedFromCache($this->targetClass);
-        $this->test(new $this->targetClass, $this->namespaceTargetParent);
+        $this->test($this->newTarget(), $this->namespaceTargetParent);
     }
 
     // Class + Parent + Trait
@@ -197,7 +202,7 @@ class MagicConstantsTest extends TestCase
 
         $this->assertWillBeWoven($this->targetParentClass);
         $this->assertWillBeWoven($this->targetClass);
-        $this->test(new $this->targetClass, $this->namespaceTargetParent);
+        $this->test($this->newTarget(), $this->namespaceTargetParent);
     }
 
     // Class + Parent + Trait (Cached)
@@ -207,20 +212,18 @@ class MagicConstantsTest extends TestCase
 
         $this->assertAspectLoadedFromCache($this->targetParentClass);
         $this->assertAspectLoadedFromCache($this->targetClass);
-        $this->test(new $this->targetClass, $this->namespaceTargetParent);
+        $this->test($this->newTarget(), $this->namespaceTargetParent);
     }
 
-    private function test(
-        TargetClass|TargetClass82 $target,
-        ?string $staticClass = null
-    ): void {
+    private function test(TargetClass|TargetClass82 $target, ?string $staticClass = null): void
+    {
         if (!$staticClass) {
             $staticClass = $this->namespaceTargetClass;
         }
 
         $constantExceptions = $this->testConstants($target);
         $propertyExceptions = $this->testProperty($target);
-        $methodExceptions   = $this->testMethod($target, $staticClass);
+        $methodExceptions = $this->testMethod($target, $staticClass);
 
         $exceptions = [
             ...$constantExceptions,
@@ -229,56 +232,60 @@ class MagicConstantsTest extends TestCase
         ];
 
         if ($exceptions) {
-            $this->markTestIncomplete(
-                'Some tests skipped: ' .
-                'https://github.com/okapi-web/php-aop/issues/69#issuecomment-1806817698'
-            );
+            $this->markTestIncomplete('Some tests skipped: '
+            . 'https://github.com/okapi-web/php-aop/issues/69#issuecomment-1806817698');
         }
     }
 
+    private function newTarget(): TargetClass|TargetClass82
+    {
+        return $this->targetClass === TargetClass82::class ? new TargetClass82() : new TargetClass();
+    }
+
+    /** @return list<ExpectationFailedException> */
     private function testConstants(TargetClass|TargetClass82 $target): array
     {
         $exceptions = [];
 
         $expected = [
-            'dir'               => $this->np($this->rootPath() . self::PREFIX_TARGET_PATH),
-            'file'              => $this->np($this->rootPath() . $this->prefixTargetClassPath),
-            'function'          => '',
-            'class'             => $this->namespaceTargetClass,
-            'trait'             => '',
-            'method'            => '',
-            'namespace'         => self::NAMESPACE_TARGET,
-            'targetClassClass'  => $this->namespaceTargetClass,
-            'targetTraitClass'  => $this->namespaceTargetTrait,
+            'dir' => $this->np($this->rootPath() . self::PREFIX_TARGET_PATH),
+            'file' => $this->np($this->rootPath() . $this->prefixTargetClassPath),
+            'function' => '',
+            'class' => $this->namespaceTargetClass,
+            'trait' => '',
+            'method' => '',
+            'namespace' => self::NAMESPACE_TARGET,
+            'targetClassClass' => $this->namespaceTargetClass,
+            'targetTraitClass' => $this->namespaceTargetTrait,
             'targetParentClass' => $this->namespaceTargetParent,
-            'selfClass'         => $this->namespaceTargetClass,
+            'selfClass' => $this->namespaceTargetClass,
         ];
 
         // region Class
 
-        $this->assertSame($expected, $target::CONST);
+        static::assertSame($expected, $target::CONST);
 
         // endregion
 
         // region Parent
 
-        $expected['file']      = $this->np($this->rootPath() . $this->prefixTargetParentPath);
-        $expected['class']     = $this->namespaceTargetParent;
+        $expected['file'] = $this->np($this->rootPath() . $this->prefixTargetParentPath);
+        $expected['class'] = $this->namespaceTargetParent;
         $expected['selfClass'] = $this->namespaceTargetParent;
 
-        $this->assertSame($expected, $target::PARENT_CONST);
+        static::assertSame($expected, $target::PARENT_CONST);
 
         // endregion
 
         // region Trait
 
         // Only PHP >= 8.2 has trait constants
-        if (version_compare(PHP_VERSION, '8.2.0', '>=')) {
-            $expected['file']  = $this->np($this->rootPath() . $this->prefixTargetTraitPath);
+        if ($target instanceof TargetClass82) {
+            $expected['file'] = $this->np($this->rootPath() . $this->prefixTargetTraitPath);
             $expected['trait'] = $this->namespaceTargetTrait;
 
             try {
-                $this->assertSame($expected, $target::TRAIT_CONST);
+                static::assertSame($expected, $target::TRAIT_CONST);
             } catch (ExpectationFailedException $e) {
                 $exceptions[] = $e;
             }
@@ -289,50 +296,51 @@ class MagicConstantsTest extends TestCase
         return $exceptions;
     }
 
+    /** @return list<ExpectationFailedException> */
     private function testProperty(TargetClass|TargetClass82 $target): array
     {
         $exceptions = [];
 
         $expected = [
-            'dir'               => $this->np($this->rootPath() . self::PREFIX_TARGET_PATH),
-            'file'              => $this->np($this->rootPath() . $this->prefixTargetClassPath),
-            'function'          => '',
-            'class'             => $this->namespaceTargetClass,
-            'trait'             => '',
-            'method'            => '',
-            'namespace'         => self::NAMESPACE_TARGET,
-            'targetClassClass'  => $this->namespaceTargetClass,
-            'targetTraitClass'  => $this->namespaceTargetTrait,
+            'dir' => $this->np($this->rootPath() . self::PREFIX_TARGET_PATH),
+            'file' => $this->np($this->rootPath() . $this->prefixTargetClassPath),
+            'function' => '',
+            'class' => $this->namespaceTargetClass,
+            'trait' => '',
+            'method' => '',
+            'namespace' => self::NAMESPACE_TARGET,
+            'targetClassClass' => $this->namespaceTargetClass,
+            'targetTraitClass' => $this->namespaceTargetTrait,
             'targetParentClass' => $this->namespaceTargetParent,
-            'selfClass'         => $this->namespaceTargetClass,
+            'selfClass' => $this->namespaceTargetClass,
         ];
 
         // region Class
 
-        $this->assertSame($expected, $target->property);
-        $this->assertSame($expected, $target::$staticProperty);
+        static::assertSame($expected, $target->property);
+        static::assertSame($expected, $target::$staticProperty);
 
         // endregion
 
         // region Parent
 
-        $expected['file']      = $this->np($this->rootPath() . $this->prefixTargetParentPath);
-        $expected['class']     = $this->namespaceTargetParent;
+        $expected['file'] = $this->np($this->rootPath() . $this->prefixTargetParentPath);
+        $expected['class'] = $this->namespaceTargetParent;
         $expected['selfClass'] = $this->namespaceTargetParent;
 
-        $this->assertSame($expected, $target->parentProperty);
-        $this->assertSame($expected, $target::$parentStaticProperty);
+        static::assertSame($expected, $target->parentProperty);
+        static::assertSame($expected, $target::$parentStaticProperty);
 
         // endregion
 
         // region Trait
 
-        $expected['file']  = $this->np($this->rootPath() . $this->prefixTargetTraitPath);
+        $expected['file'] = $this->np($this->rootPath() . $this->prefixTargetTraitPath);
         $expected['trait'] = $this->namespaceTargetTrait;
 
         try {
-            $this->assertSame($expected, $target->traitProperty);
-            $this->assertSame($expected, $target::$traitStaticProperty);
+            static::assertSame($expected, $target->traitProperty);
+            static::assertSame($expected, $target::$traitStaticProperty);
         } catch (ExpectationFailedException $e) {
             $exceptions[] = $e;
         }
@@ -342,10 +350,9 @@ class MagicConstantsTest extends TestCase
         return $exceptions;
     }
 
-    private function testMethod(
-        TargetClass|TargetClass82 $target,
-        ?string $staticClass
-    ): array {
+    /** @return list<ExpectationFailedException> */
+    private function testMethod(TargetClass|TargetClass82 $target, ?string $staticClass): array
+    {
         if (!$staticClass) {
             $staticClass = $this->namespaceTargetClass;
         }
@@ -353,63 +360,63 @@ class MagicConstantsTest extends TestCase
         $exceptions = [];
 
         $expected = [
-            'dir'               => $this->np($this->rootPath() . self::PREFIX_TARGET_PATH),
-            'file'              => $this->np($this->rootPath() . $this->prefixTargetClassPath),
-            'function'          => 'method',
-            'class'             => $this->namespaceTargetClass,
-            'trait'             => '',
-            'method'            => $this->namespaceTargetClass . '::method',
-            'namespace'         => self::NAMESPACE_TARGET,
-            'targetClassClass'  => $this->namespaceTargetClass,
-            'targetTraitClass'  => $this->namespaceTargetTrait,
+            'dir' => $this->np($this->rootPath() . self::PREFIX_TARGET_PATH),
+            'file' => $this->np($this->rootPath() . $this->prefixTargetClassPath),
+            'function' => 'method',
+            'class' => $this->namespaceTargetClass,
+            'trait' => '',
+            'method' => $this->namespaceTargetClass . '::method',
+            'namespace' => self::NAMESPACE_TARGET,
+            'targetClassClass' => $this->namespaceTargetClass,
+            'targetTraitClass' => $this->namespaceTargetTrait,
             'targetParentClass' => $this->namespaceTargetParent,
-            'selfClass'         => $this->namespaceTargetClass,
-            'staticClass'       => $this->namespaceTargetClass,
+            'selfClass' => $this->namespaceTargetClass,
+            'staticClass' => $this->namespaceTargetClass,
         ];
 
         // region Class
 
-        $this->assertSame($expected, $target->method());
+        static::assertSame($expected, $target->method());
 
         $expected['function'] = 'staticMethod';
-        $expected['method']   = $this->namespaceTargetClass . '::staticMethod';
+        $expected['method'] = $this->namespaceTargetClass . '::staticMethod';
 
-        $this->assertSame($expected, $target::staticMethod());
+        static::assertSame($expected, $target::staticMethod());
 
         // endregion
 
         // region Parent
 
-        $expected['file']      = $this->np($this->rootPath() . $this->prefixTargetParentPath);
-        $expected['function']  = 'parentMethod';
-        $expected['class']     = $this->namespaceTargetParent;
-        $expected['method']    = $this->namespaceTargetParent . '::parentMethod';
+        $expected['file'] = $this->np($this->rootPath() . $this->prefixTargetParentPath);
+        $expected['function'] = 'parentMethod';
+        $expected['class'] = $this->namespaceTargetParent;
+        $expected['method'] = $this->namespaceTargetParent . '::parentMethod';
         $expected['selfClass'] = $this->namespaceTargetParent;
 
-        $this->assertSame($expected, $target->parentMethod());
+        static::assertSame($expected, $target->parentMethod());
 
-        $expected['function']    = 'parentStaticMethod';
-        $expected['method']      = $this->namespaceTargetParent . '::parentStaticMethod';
+        $expected['function'] = 'parentStaticMethod';
+        $expected['method'] = $this->namespaceTargetParent . '::parentStaticMethod';
         $expected['staticClass'] = $staticClass;
 
-        $this->assertSame($expected, $target::parentStaticMethod());
+        static::assertSame($expected, $target::parentStaticMethod());
 
         // endregion
 
         // region Trait
 
         try {
-            $expected['file']     = $this->np($this->rootPath() . $this->prefixTargetTraitPath);
+            $expected['file'] = $this->np($this->rootPath() . $this->prefixTargetTraitPath);
             $expected['function'] = 'traitMethod';
-            $expected['trait']    = $this->namespaceTargetTrait;
-            $expected['method']   = $this->namespaceTargetTrait . '::traitMethod';
+            $expected['trait'] = $this->namespaceTargetTrait;
+            $expected['method'] = $this->namespaceTargetTrait . '::traitMethod';
 
-            $this->assertSame($expected, $target->traitMethod());
+            static::assertSame($expected, $target->traitMethod());
 
             $expected['function'] = 'traitStaticMethod';
-            $expected['method']   = $this->namespaceTargetTrait . '::traitStaticMethod';
+            $expected['method'] = $this->namespaceTargetTrait . '::traitStaticMethod';
 
-            $this->assertSame($expected, $target::traitStaticMethod());
+            static::assertSame($expected, $target::traitStaticMethod());
         } catch (ExpectationFailedException $e) {
             $exceptions[] = $e;
         }

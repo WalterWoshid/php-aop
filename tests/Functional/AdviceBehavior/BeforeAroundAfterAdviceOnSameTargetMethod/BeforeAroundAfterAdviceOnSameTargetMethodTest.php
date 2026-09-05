@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpExpressionResultUnusedInspection */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\BeforeAroundAfterAdviceOnSameTargetMethod;
 
@@ -32,42 +33,39 @@ class BeforeAroundAfterAdviceOnSameTargetMethodTest extends TestCase
         $processor = new PaymentProcessor();
 
         // Test with an invalid payment amount
-        $amount          = -50.00;
+        $amount = -50.00;
         $exceptionThrown = false;
         try {
             $processor->processPayment($amount);
         } catch (InvalidArgumentException $e) {
             $exceptionThrown = true;
-            $this->assertSame(
-                'Invalid payment amount',
-                $e->getMessage(),
-            );
+            static::assertSame('Invalid payment amount', $e->getMessage());
         }
-        $this->assertTrue($exceptionThrown);
+        static::assertTrue($exceptionThrown);
 
         // Test with a valid payment amount
-        $amount  = 420.00;
+        $amount = 420.00;
         $success = $processor->processPayment($amount);
-        $this->assertTrue($success);
+        static::assertTrue($success);
 
         // Test that the log message was printed
         $logger = Logger::getInstance();
-        $logs   = $logger->getLogs();
-        $this->assertCount(1, $logs);
+        $logs = $logger->getLogs();
+        static::assertCount(1, $logs);
         $logMessage = $logs[0];
-        $wildcard   = 'Payment processed for amount $* in * seconds';
-        $regex      = Regex::fromWildcard($wildcard);
-        $matches    = $regex->matches($logMessage);
-        $this->assertTrue($matches);
+        $wildcard = 'Payment processed for amount $* in * seconds';
+        $regex = Regex::fromWildcard($wildcard);
+        $matches = $regex->matches($logMessage);
+        static::assertTrue($matches);
 
         // Test that the email notification was sent
         $mailQueue = MailQueue::getInstance();
-        $mails     = $mailQueue->getMails();
-        $this->assertCount(1, $mails);
-        $mail     = $mails[0];
+        $mails = $mailQueue->getMails();
+        static::assertCount(1, $mails);
+        $mail = $mails[0];
         $wildcard = 'Payment processed for amount $* - Payment successful';
-        $regex    = Regex::fromWildcard($wildcard);
-        $matches  = $regex->matches($mail);
-        $this->assertTrue($matches);
+        $regex = Regex::fromWildcard($wildcard);
+        $matches = $regex->matches($mail);
+        static::assertTrue($matches);
     }
 }

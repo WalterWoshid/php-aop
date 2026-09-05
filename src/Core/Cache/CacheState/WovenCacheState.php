@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\Cache\CacheState;
 
@@ -24,18 +25,22 @@ class WovenCacheState extends CacheState
 
     // endregion
 
-    public const PROXY_FILE_PATH_KEY        = 'proxyFilePath';
-    public const WOVEN_FILE_PATH_KEY        = 'wovenFilePath';
+    public const PROXY_FILE_PATH_KEY = 'proxyFilePath';
+    public const WOVEN_FILE_PATH_KEY = 'wovenFilePath';
     public const TRANSFORMER_FILE_PATHS_KEY = 'transformerFilePaths';
-    public const ADVICE_NAMES_KEY           = 'adviceNames';
-    public const ASPECT_FILE_PATHS_KEY      = 'aspectFilePaths';
-    public const ASPECT_CLASS_NAMES_KEY     = 'aspectClassNames';
+    public const ADVICE_NAMES_KEY = 'adviceNames';
+    public const ASPECT_FILE_PATHS_KEY = 'aspectFilePaths';
+    public const ASPECT_CLASS_NAMES_KEY = 'aspectClassNames';
 
     public string $proxyFilePath;
     public string $wovenFilePath;
+    /** @var string[] */
     public array $transformerFilePaths;
+    /** @var string[] */
     public array $adviceNames;
+    /** @var string[] */
     public array $aspectFilePaths;
+    /** @var class-string[] */
     public array $aspectClassNames;
 
     /**
@@ -43,17 +48,14 @@ class WovenCacheState extends CacheState
      */
     public function getRequiredKeys(): array
     {
-        return array_merge(
-            parent::getRequiredKeys(),
-            [
-                static::PROXY_FILE_PATH_KEY,
-                static::WOVEN_FILE_PATH_KEY,
-                static::TRANSFORMER_FILE_PATHS_KEY,
-                static::ADVICE_NAMES_KEY,
-                static::ASPECT_FILE_PATHS_KEY,
-                static::ASPECT_CLASS_NAMES_KEY,
-            ],
-        );
+        return array_merge(parent::getRequiredKeys(), [
+            static::PROXY_FILE_PATH_KEY,
+            static::WOVEN_FILE_PATH_KEY,
+            static::TRANSFORMER_FILE_PATHS_KEY,
+            static::ADVICE_NAMES_KEY,
+            static::ASPECT_FILE_PATHS_KEY,
+            static::ASPECT_CLASS_NAMES_KEY,
+        ]);
     }
 
     /**
@@ -64,6 +66,7 @@ class WovenCacheState extends CacheState
         if (!parent::isFresh()) {
             // @codeCoverageIgnoreStart
             return false;
+
             // @codeCoverageIgnoreEnd
         }
 
@@ -71,6 +74,7 @@ class WovenCacheState extends CacheState
         if (!file_exists($this->proxyFilePath)) {
             // @codeCoverageIgnoreStart
             return false;
+
             // @codeCoverageIgnoreEnd
         }
 
@@ -78,17 +82,16 @@ class WovenCacheState extends CacheState
         if (!file_exists($this->wovenFilePath)) {
             // @codeCoverageIgnoreStart
             return false;
+
             // @codeCoverageIgnoreEnd
         }
 
-        $transformerAndAspectFilePaths = array_merge(
-            $this->transformerFilePaths,
-            $this->aspectFilePaths,
-        );
+        $transformerAndAspectFilePaths = array_merge($this->transformerFilePaths, $this->aspectFilePaths);
         foreach ($transformerAndAspectFilePaths as $filePath) {
             if (!file_exists($filePath)) {
                 // @codeCoverageIgnoreStart
                 return false;
+
                 // @codeCoverageIgnoreEnd
             }
         }
@@ -107,10 +110,7 @@ class WovenCacheState extends CacheState
         }
 
         // Add the cached advice containers to the aspect matcher
-        $this->aspectMatcher->addMatchedAdviceContainers(
-            $this->namespacedClass,
-            $this->getAdviceContainers(),
-        );
+        $this->aspectMatcher->addMatchedAdviceContainers($this->namespacedClass, $this->getAdviceContainers());
 
         return $this->proxyFilePath;
     }
@@ -118,12 +118,10 @@ class WovenCacheState extends CacheState
     /**
      * Get the advice containers for the given advice names.
      *
-     * @return array
+     * @return \Okapi\Aop\Core\Container\AdviceContainer[]
      */
     private function getAdviceContainers(): array
     {
-        return $this->aspectManager->getAdviceContainersByAdviceNames(
-            $this->adviceNames,
-        );
+        return $this->aspectManager->getAdviceContainersByAdviceNames($this->adviceNames);
     }
 }

@@ -34,9 +34,9 @@ abstract class MethodAdvice extends BaseAdvice
      *                                           [Default: {@see false}]
      */
     public function __construct(
-        ?string     $class = null,
-        ?string     $method = null,
-        int         $order = 0,
+        ?string $class = null,
+        ?string $method = null,
+        int $order = 0,
         public bool $interceptTraitMethods = true,
         public bool $onlyPublicMethods = false,
     ) {

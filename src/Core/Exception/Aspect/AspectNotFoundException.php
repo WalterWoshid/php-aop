@@ -18,8 +18,6 @@ class AspectNotFoundException extends AspectException
      */
     public function __construct(string $aspectName)
     {
-        parent::__construct(
-            'Aspect "' . $aspectName . '" not found.',
-        );
+        parent::__construct('Aspect "' . $aspectName . '" not found.');
     }
 }

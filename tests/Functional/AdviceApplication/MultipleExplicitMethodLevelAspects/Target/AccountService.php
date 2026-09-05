@@ -7,8 +7,10 @@ use Okapi\Aop\Tests\Functional\AdviceApplication\MultipleExplicitMethodLevelAspe
 
 class AccountService
 {
+    /** @var array<int, string> */
     private array $accounts = [];
 
+    /** @param array{id: string} $userData */
     #[SecurityAspect]
     public function createAccount(array $userData): void
     {
@@ -18,16 +20,17 @@ class AccountService
     #[SecurityAspect]
     public function deleteAccount(string $accountId): void
     {
-        $accountIndex = array_search($accountId, $this->accounts);
+        $accountIndex = array_search($accountId, $this->accounts, true);
 
         if ($accountIndex === false) {
             /** @noinspection PhpUnhandledExceptionInspection */
-            throw new Exception("Account with id $accountId not found.");
+            throw new Exception("Account with id {$accountId} not found.");
         }
 
         unset($this->accounts[$accountIndex]);
     }
 
+    /** @return array<int, string> */
     public function getAccounts(): array
     {
         return $this->accounts;

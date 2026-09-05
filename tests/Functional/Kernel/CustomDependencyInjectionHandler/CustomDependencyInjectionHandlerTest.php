@@ -18,17 +18,12 @@ class CustomDependencyInjectionHandlerTest extends TestCase
         Kernel::init();
 
         $output = ob_get_clean();
+        static::assertIsString($output);
 
-        $this->assertStringContainsString(
-            'Generating aspect/transformer instance: ' . Aspect::class,
-            $output,
-        );
+        static::assertStringContainsString('Generating aspect/transformer instance: ' . Aspect::class, $output);
 
         $class = new Target();
 
-        $this->assertSame(
-            420,
-            $class->answer(),
-        );
+        static::assertSame(420, $class->answer());
     }
 }

@@ -16,7 +16,7 @@ class BankingSystem
 
     protected function removeFeeFromDeposit(float $amount): float
     {
-        return $amount - ($amount * self::DEPOSIT_FEE_PERCENTAGE / 100);
+        return $amount - (($amount * self::DEPOSIT_FEE_PERCENTAGE) / 100);
     }
 
     public function withdraw(float $amount): void
@@ -26,7 +26,7 @@ class BankingSystem
 
     private function addFeeToWithdraw(float $amount): float
     {
-        return $amount + ($amount * self::WITHDRAW_FEE_PERCENTAGE / 100);
+        return $amount + (($amount * self::WITHDRAW_FEE_PERCENTAGE) / 100);
     }
 
     public function getBalance(): float
