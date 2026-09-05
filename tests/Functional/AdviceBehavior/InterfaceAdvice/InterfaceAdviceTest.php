@@ -23,9 +23,9 @@ class InterfaceAdviceTest extends TestCase
         Kernel::init();
 
         $this->assertWillBeWoven(User::class);
-        $user     = new User();
+        $user = new User();
         $userName = $user->getName();
 
-        $this->assertSame('Jane Doe', $userName);
+        static::assertSame('Jane Doe', $userName);
     }
 }

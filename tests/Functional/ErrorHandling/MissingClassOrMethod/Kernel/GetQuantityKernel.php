@@ -10,6 +10,7 @@ class GetQuantityKernel extends AopKernel
 {
     protected ?string $cacheDir = Util::CACHE_DIR;
 
+    /** @var array<array-key, class-string> */
     protected array $aspects = [
         GetQuantityLoggerAspect::class,
     ];

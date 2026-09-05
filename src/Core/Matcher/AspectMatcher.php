@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\Matcher;
 
@@ -91,10 +92,7 @@ class AspectMatcher
 
         // Skip interfaces and traits, because they cannot be woven
         if ($refClass->isInterface() || $refClass->isTrait()) {
-            $this->cacheEmptyResult(
-                $namespacedClass,
-                $refClass->getFileName(),
-            );
+            $this->cacheEmptyResult($namespacedClass, $refClass->getFileName());
             return false;
         }
 
@@ -107,16 +105,13 @@ class AspectMatcher
                     $refClass,
                     $adviceContainer,
                     $this->explicitClassAspectTargets[$namespacedClass] ?? false,
-                    (bool)($this->explicitMethodAspectTargets[$namespacedClass] ?? false),
+                    (bool) ($this->explicitMethodAspectTargets[$namespacedClass] ?? false),
                 )) {
                     continue;
                 }
 
                 // Match advices
-                $matchedAdviceContainer = $this->adviceMatcher->match(
-                    $adviceContainer,
-                    $refClass,
-                );
+                $matchedAdviceContainer = $this->adviceMatcher->match($adviceContainer, $refClass);
                 if ($matchedAdviceContainer) {
                     $matchedAdviceContainers[] = $matchedAdviceContainer;
                 }
@@ -128,13 +123,10 @@ class AspectMatcher
 
         // Cache the result
         if (!$matchedAdviceContainers) {
-            $this->cacheEmptyResult(
-                $namespacedClass,
-                $refClass->getFileName(),
-            );
+            $this->cacheEmptyResult($namespacedClass, $refClass->getFileName());
         }
 
-        return (bool)$matchedAdviceContainers;
+        return (bool) $matchedAdviceContainers;
     }
 
     /**
@@ -147,9 +139,8 @@ class AspectMatcher
      *
      * @return void
      */
-    protected function checkForExplicitAdvices(
-        BetterReflectionClass $refClass,
-    ): void {
+    protected function checkForExplicitAdvices(BetterReflectionClass $refClass): void
+    {
         $this->checkForExplicitClassAspects($refClass);
         $this->checkForExplicitMethodAspects($refClass);
     }
@@ -161,14 +152,15 @@ class AspectMatcher
      *
      * @return void
      */
-    protected function checkForExplicitClassAspects(
-        BetterReflectionClass $refClass,
-    ): void {
+    protected function checkForExplicitClassAspects(BetterReflectionClass $refClass): void
+    {
         foreach ($refClass->getAttributes() as $refAttribute) {
-            if ($this->hasAspectAndAttribute($refAttribute)) {
-                $this->aspectManager->loadAspect($refAttribute->getClass()->getName());
-                $this->explicitClassAspectTargets[$refClass->getName()] = true;
+            if (!$this->hasAspectAndAttribute($refAttribute)) {
+                continue;
             }
+
+            $this->aspectManager->loadAspect($refAttribute->getClass()->getName());
+            $this->explicitClassAspectTargets[$refClass->getName()] = true;
         }
     }
 
@@ -179,15 +171,16 @@ class AspectMatcher
      *
      * @return void
      */
-    protected function checkForExplicitMethodAspects(
-        BetterReflectionClass $refClass,
-    ): void {
+    protected function checkForExplicitMethodAspects(BetterReflectionClass $refClass): void
+    {
         foreach ($refClass->getImmediateMethods() as $refMethod) {
             foreach ($refMethod->getAttributes() as $refAttribute) {
-                if ($this->hasAspectAndAttribute($refAttribute)) {
-                    $this->aspectManager->loadAspect($refAttribute->getClass()->getName());
-                    $this->explicitMethodAspectTargets[$refClass->getName()][] = $refMethod->getName();
+                if (!$this->hasAspectAndAttribute($refAttribute)) {
+                    continue;
                 }
+
+                $this->aspectManager->loadAspect($refAttribute->getClass()->getName());
+                $this->explicitMethodAspectTargets[$refClass->getName()][] = $refMethod->getName();
             }
         }
     }
@@ -199,9 +192,8 @@ class AspectMatcher
      *
      * @return bool
      */
-    protected function hasAspectAndAttribute(
-        BetterReflectionAttribute $refAttribute,
-    ): bool {
+    protected function hasAspectAndAttribute(BetterReflectionAttribute $refAttribute): bool
+    {
         try {
             $attributeClass = $refAttribute->getClass();
         } catch (IdentifierNotFound) {
@@ -211,12 +203,8 @@ class AspectMatcher
             return false;
         }
 
-        $hasAspectAttribute    = (bool)$attributeClass->getAttributesByInstance(
-            Aspect::class,
-        );
-        $hasAttributeAttribute = (bool)$attributeClass->getAttributesByInstance(
-            Attribute::class,
-        );
+        $hasAspectAttribute = (bool) $attributeClass->getAttributesByInstance(Aspect::class);
+        $hasAttributeAttribute = (bool) $attributeClass->getAttributesByInstance(Attribute::class);
 
         return $hasAspectAttribute && $hasAttributeAttribute;
     }
@@ -229,24 +217,25 @@ class AspectMatcher
      *
      * @return void
      */
-    private function cacheEmptyResult(
-        string $namespacedClass,
-        string $filePath,
-    ): void {
-        $filePath   = Path::resolve($filePath);
+    private function cacheEmptyResult(string $namespacedClass, ?string $filePath): void
+    {
+        if ($filePath === null) {
+            return;
+        }
+        $filePath = Path::resolve($filePath);
+        if (!is_string($filePath)) {
+            return;
+        }
         $cacheState = DI::make(EmptyResultCacheState::class, [
             CacheState::DATA => [
                 CacheState::ORIGINAL_FILE_PATH_KEY => $filePath,
-                CacheState::NAMESPACED_CLASS_KEY   => $namespacedClass,
-                CacheState::MODIFICATION_TIME_KEY  => filemtime($filePath),
+                CacheState::NAMESPACED_CLASS_KEY => $namespacedClass,
+                CacheState::MODIFICATION_TIME_KEY => filemtime($filePath),
             ],
         ]);
 
         // Set the cache state
-        $this->cacheStateManager->setCacheState(
-            $filePath,
-            $cacheState,
-        );
+        $this->cacheStateManager->setCacheState($filePath, $cacheState);
     }
 
     /**
@@ -257,10 +246,8 @@ class AspectMatcher
      *
      * @return void
      */
-    public function addMatchedAdviceContainers(
-        string $namespacedClass,
-        array  $adviceContainers,
-    ): void {
+    public function addMatchedAdviceContainers(string $namespacedClass, array $adviceContainers): void
+    {
         $this->matchedAdviceContainers[$namespacedClass] = $adviceContainers;
     }
 
@@ -284,14 +271,12 @@ class AspectMatcher
      *
      * @return MethodAdviceContainer[]
      */
-    public function getMatchedAdviceContainersByJoinPoint(
-        string $targetClassName,
-        string $joinPoint,
-    ): array {
+    public function getMatchedAdviceContainersByJoinPoint(string $targetClassName, string $joinPoint): array
+    {
         $matchedAdviceContainers = [];
 
         foreach ($this->matchedAdviceContainers[$targetClassName] as $adviceContainer) {
-            if (!($adviceContainer instanceof MethodAdviceContainer)) {
+            if (!$adviceContainer instanceof MethodAdviceContainer) {
                 continue;
             }
 

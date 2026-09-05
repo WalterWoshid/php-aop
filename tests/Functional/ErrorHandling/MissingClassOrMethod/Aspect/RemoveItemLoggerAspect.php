@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\ErrorHandling\MissingClassOrMethod\Aspect;
 
@@ -11,17 +12,13 @@ use Okapi\Aop\Tests\Stubs\Etc\Logger;
 #[Aspect]
 class RemoveItemLoggerAspect
 {
-    #[After(
-        class: InventoryManager::class,
-    )]
+    #[After(class: InventoryManager::class)]
     public function logRemoveItem(AfterMethodInvocation $invocation): void
     {
+        /** @var string $itemName */
         $itemName = $invocation->getArgument('itemName');
 
-        $logMessage = sprintf(
-            "Item %s removed from inventory.",
-            $itemName,
-        );
+        $logMessage = sprintf('Item %s removed from inventory.', $itemName);
 
         $logger = Logger::getInstance();
         $logger->log($logMessage);

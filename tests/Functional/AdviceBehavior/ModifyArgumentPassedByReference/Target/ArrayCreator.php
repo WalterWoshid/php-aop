@@ -4,6 +4,7 @@ namespace Okapi\Aop\Tests\Functional\AdviceBehavior\ModifyArgumentPassedByRefere
 
 class ArrayCreator
 {
+    /** @param-out array<string, mixed> $data */
     public function createArray(mixed &$data): void
     {
         $data = ['data' => $data];

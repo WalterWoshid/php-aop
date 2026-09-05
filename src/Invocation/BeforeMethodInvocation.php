@@ -10,6 +10,4 @@ use Okapi\Aop\Attributes\Before;
  * This class is used to pass information to {@see Before} advices in form of a
  * parameter.
  */
-class BeforeMethodInvocation extends MethodInvocation
-{
-}
+class BeforeMethodInvocation extends MethodInvocation {}

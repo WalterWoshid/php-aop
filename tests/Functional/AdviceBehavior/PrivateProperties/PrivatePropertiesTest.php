@@ -1,17 +1,18 @@
 <?php
+
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties;
 
 use Okapi\Aop\PropertyAccess;
 use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\ChildInput;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\MagicInput;
 use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\ParentInput;
 use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\PromotedInput;
-use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\SameTypeInput;
-use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\TraitInput;
-use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\MagicInput;
-use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\StaticParent;
-use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\StaticChild;
-use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\PublicInput;
 use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\PublicGrandchild;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\PublicInput;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\SameTypeInput;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\StaticChild;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\StaticParent;
+use Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target\TraitInput;
 use Okapi\Aop\Tests\Util;
 use PHPUnit\Framework\Attributes\RunTestsInSeparateProcesses;
 use PHPUnit\Framework\TestCase;
@@ -19,6 +20,12 @@ use PHPUnit\Framework\TestCase;
 #[RunTestsInSeparateProcesses]
 class PrivatePropertiesTest extends TestCase
 {
+    /** Expose the fixture's magic properties as a structural object view. */
+    private function propertyView(object $accessor): object
+    {
+        return $accessor;
+    }
+
     protected function setUp(): void
     {
         Util::clearCache();
@@ -27,37 +34,38 @@ class PrivatePropertiesTest extends TestCase
 
     public function testDifferentTypesAfterParentHasAlreadyLoaded(): void
     {
-        self::assertSame(['parent'], (new ParentInput())->parentTokens());
+        static::assertSame(['parent'], (new ParentInput())->parentTokens());
         $child = new ChildInput();
-        self::assertSame(['parent'], $child->parentTokens());
-        self::assertSame('child', $child->childTokens());
-        self::assertGreaterThanOrEqual(3, EverythingAspect::$calls);
+        static::assertSame(['parent'], $child->parentTokens());
+        static::assertSame('child', $child->childTokens());
+        static::assertGreaterThanOrEqual(3, EverythingAspect::$calls);
     }
 
     public function testSameTypesRetainIndependentValues(): void
     {
         $child = new SameTypeInput();
-        self::assertSame(['parent'], $child->parentTokens());
-        self::assertSame(['child'], $child->childTokens());
+        static::assertSame(['parent'], $child->parentTokens());
+        static::assertSame(['child'], $child->childTokens());
     }
 
     public function testPromotedPropertyIsNotDuplicatedByForwardingConstructor(): void
     {
         $child = new PromotedInput('initial');
         PropertyAccess::set($child, 'tokens', 'changed', PromotedInput::class);
-        self::assertSame('changed', $child->childTokens());
-        self::assertSame(['parent'], $child->parentTokens());
+        static::assertSame('changed', $child->childTokens());
+        static::assertSame(['parent'], $child->parentTokens());
     }
 
     public function testUnambiguousPropertyAccessDoesNotRequireScope(): void
     {
         $parent = new ParentInput();
+        /** @var list<string> $values */
         $values = PropertyAccess::get($parent, 'unique');
         $values[] = 'appended';
         PropertyAccess::set($parent, 'unique', $values);
-        self::assertSame(['unique', 'appended'], $parent->unique());
+        static::assertSame(['unique', 'appended'], $parent->unique());
         PropertyAccess::set($parent, 'unique', ['assigned']);
-        self::assertSame(['assigned'], $parent->unique());
+        static::assertSame(['assigned'], $parent->unique());
     }
 
     public function testExplicitScopeSelectsTheOriginalDeclaration(): void
@@ -65,9 +73,9 @@ class PrivatePropertiesTest extends TestCase
         $child = new ChildInput();
         PropertyAccess::set($child, 'tokens', ['updated parent'], ParentInput::class);
         PropertyAccess::set($child, 'tokens', 'updated child', ChildInput::class);
-        self::assertSame(['updated parent'], $child->parentTokens());
-        self::assertSame('updated child', $child->childTokens());
-        self::assertSame(['updated parent'], PropertyAccess::get($child, 'tokens', ParentInput::class));
+        static::assertSame(['updated parent'], $child->parentTokens());
+        static::assertSame('updated child', $child->childTokens());
+        static::assertSame(['updated parent'], PropertyAccess::get($child, 'tokens', ParentInput::class));
     }
 
     public function testAmbiguousAccessRequiresExplicitScope(): void
@@ -81,32 +89,32 @@ class PrivatePropertiesTest extends TestCase
     public function testTraitPropertyRemainsSeparate(): void
     {
         $child = new TraitInput();
-        self::assertSame(['parent'], $child->parentTokens());
-        self::assertSame('trait', $child->childTokens());
+        static::assertSame(['parent'], $child->parentTokens());
+        static::assertSame('trait', $child->childTokens());
         PropertyAccess::set($child, 'tokens', 'updated trait', TraitInput::class);
-        self::assertSame('updated trait', $child->childTokens());
+        static::assertSame('updated trait', $child->childTokens());
     }
 
     public function testCustomMagicAccessorsKeepVirtualPropertyBehavior(): void
     {
         $input = new MagicInput();
-        self::assertSame('virtual', $input->example);
+        static::assertSame('virtual', $input->example);
         $input->example = 'assigned';
-        self::assertSame('assigned', $input->example);
-        self::assertTrue(isset($input->example));
-        self::assertSame(['example' => 'assigned'], PropertyAccess::get($input, 'values', MagicInput::class));
+        static::assertSame('assigned', $input->example);
+        static::assertTrue(isset($input->example));
+        static::assertSame(['example' => 'assigned'], PropertyAccess::get($input, 'values', MagicInput::class));
         unset($input->example);
-        self::assertFalse(isset($input->example));
+        static::assertFalse(isset($input->example));
     }
 
     public function testStaticPrivatePropertiesHaveIndependentStorage(): void
     {
-        self::assertSame(['parent'], StaticChild::parentTokens());
-        self::assertSame('child', StaticChild::childTokens());
+        static::assertSame(['parent'], StaticChild::parentTokens());
+        static::assertSame('child', StaticChild::childTokens());
         PropertyAccess::set(StaticChild::class, 'tokens', ['updated'], StaticParent::class);
         PropertyAccess::set(StaticChild::class, 'tokens', 'updated child', StaticChild::class);
-        self::assertSame(['updated'], StaticChild::parentTokens());
-        self::assertSame('updated child', PropertyAccess::get(StaticChild::class, 'tokens', StaticChild::class));
+        static::assertSame(['updated'], StaticChild::parentTokens());
+        static::assertSame('updated child', PropertyAccess::get(StaticChild::class, 'tokens', StaticChild::class));
     }
 
     public function testUnknownScopeDoesNotFallBackToAnotherDeclaration(): void
@@ -131,32 +139,35 @@ class PrivatePropertiesTest extends TestCase
     {
         $child = new PublicInput();
         $child->tokens = 'direct write';
-        self::assertSame(['parent'], $child->parentTokens());
-        self::assertSame('direct write', $child->childTokens());
-        self::assertSame('direct write', PropertyAccess::get($child, 'tokens', PublicInput::class));
+        static::assertSame(['parent'], $child->parentTokens());
+        static::assertSame('direct write', $child->childTokens());
+        static::assertSame('direct write', PropertyAccess::get($child, 'tokens', PublicInput::class));
     }
 
     public function testNonPrivateOverridesShareStorage(): void
     {
         $child = new PublicGrandchild();
         PropertyAccess::set($child, 'tokens', 'shared', PublicInput::class);
-        self::assertSame('shared', $child->tokens);
-        self::assertSame('shared', PropertyAccess::get($child, 'tokens', PublicGrandchild::class));
-        self::assertSame(['parent'], $child->parentTokens());
+        static::assertSame('shared', $child->tokens);
+        static::assertSame('shared', PropertyAccess::get($child, 'tokens', PublicGrandchild::class));
+        static::assertSame(['parent'], $child->parentTokens());
     }
 
     public function testUninitializedNullableReadThrowsWithoutInitializingProperty(): void
     {
         $child = new PublicInput();
         $property = new \ReflectionProperty(PublicInput::class . '__AopProxied', 'uninitialized');
-        self::assertFalse($property->isInitialized($child));
+        static::assertFalse($property->isInitialized($child));
+        static::assertFalse($child->hasUninitializedValue());
         try {
             PropertyAccess::get($child, 'uninitialized', PublicInput::class);
-            self::fail('Expected an uninitialized property error.');
-        } catch (\Error $error) {
-            self::assertStringContainsString('must not be accessed before initialization', $error->getMessage());
+            static::fail('Expected an uninitialized property error.');
+        } catch (\Throwable $error) {
+            static::assertInstanceOf(\Error::class, $error);
+            static::assertStringContainsString('must not be accessed before initialization', $error->getMessage());
         }
-        self::assertFalse($property->isInitialized($child));
+        static::assertFalse($property->isInitialized($child));
+        static::assertFalse($child->hasUninitializedValue());
     }
 
     public function testInvocationAccessorMutatesActualSubjectAndSupportsReferences(): void
@@ -164,18 +175,19 @@ class PrivatePropertiesTest extends TestCase
         $subject = new ParentInput();
         $subject->unique();
         $invocation = EverythingAspect::$invocation;
-        self::assertSame($subject, $invocation->getSubject());
-        $properties = $invocation->properties();
+        static::assertSame($subject, $invocation->getSubject());
+        /** @var object{unique: list<string>, missing?: mixed} $properties */
+        $properties = $this->propertyView($invocation->properties());
         $properties->unique[] = 'appended';
-        $reference =& $properties->unique;
+        $reference = &$properties->unique;
         $reference[] = 'reference';
-        self::assertSame(['unique', 'appended', 'reference'], $subject->unique());
-        self::assertTrue(isset($properties->unique));
+        static::assertSame(['unique', 'appended', 'reference'], $subject->unique());
+        static::assertTrue(isset($properties->unique));
         $properties->unique = ['assigned'];
-        self::assertSame(['assigned'], $subject->unique());
+        static::assertSame(['assigned'], $subject->unique());
         unset($properties->unique);
-        self::assertFalse(isset($properties->unique));
-        self::assertFalse(isset($properties->missing));
+        static::assertFalse(isset($properties->unique));
+        static::assertFalse(isset($properties->missing));
     }
 
     public function testInvocationAccessorSelectsParentAndChildScope(): void
@@ -183,23 +195,24 @@ class PrivatePropertiesTest extends TestCase
         $subject = new ChildInput();
         $subject->childTokens();
         $invocation = EverythingAspect::$invocation;
-        $invocation->properties(ParentInput::class)->tokens = ['changed parent'];
-        $invocation->properties(ChildInput::class)->tokens = 'changed child';
-        self::assertSame(['changed parent'], $subject->parentTokens());
-        self::assertSame('changed child', $subject->childTokens());
+        $invocation->properties(ParentInput::class)->__set('tokens', ['changed parent']);
+        $invocation->properties(ChildInput::class)->__set('tokens', 'changed child');
+        static::assertSame(['changed parent'], $subject->parentTokens());
+        static::assertSame('changed child', $subject->childTokens());
         $this->expectException(\LogicException::class);
-        $invocation->properties()->tokens;
+        $invocation->properties()->__get('tokens');
     }
 
     public function testStaticInvocationAccessor(): void
     {
         StaticChild::childTokens();
         $invocation = EverythingAspect::$invocation;
-        self::assertNull($invocation->getSubject());
-        $properties = $invocation->properties(StaticChild::class);
+        static::assertNull($invocation->getSubject());
+        /** @var object{tokens: string} $properties */
+        $properties = $this->propertyView($invocation->properties(StaticChild::class));
         $properties->tokens = 'assigned';
-        self::assertSame('assigned', $properties->tokens);
-        self::assertSame('assigned', StaticChild::childTokens());
+        static::assertSame('assigned', $properties->tokens);
+        static::assertSame('assigned', StaticChild::childTokens());
         $this->expectException(\Error::class);
         unset($properties->tokens);
     }
@@ -208,10 +221,11 @@ class PrivatePropertiesTest extends TestCase
     {
         $subject = new PublicInput();
         $subject->childTokens();
-        $properties = EverythingAspect::$invocation->properties(PublicInput::class);
-        self::assertFalse(isset($properties->uninitialized));
+        /** @var object{uninitialized: ?string} $properties */
+        $properties = $this->propertyView(EverythingAspect::$invocation->properties(PublicInput::class));
+        static::assertFalse(isset($properties->uninitialized));
         $this->expectException(\Error::class);
-        $properties->uninitialized;
+        static::fail('Expected an uninitialized property error: ' . var_export($properties->uninitialized, true));
     }
 
     public function testUnsetPropertyReadDoesNotInvokeSubjectMagicGetter(): void
@@ -219,15 +233,21 @@ class PrivatePropertiesTest extends TestCase
         $subject = new class {
             private string $value = 'initial';
             public int $calls = 0;
-            public function __get(string $name): mixed { $this->calls++; return 'magic'; }
+
+            public function __get(string $name): mixed
+            {
+                $this->calls++;
+                return 'magic';
+            }
         };
-        $properties = new \Okapi\Aop\Invocation\PropertyAccessor($subject);
+        /** @var object{value: string} $properties */
+        $properties = $this->propertyView(new \Okapi\Aop\Invocation\PropertyAccessor($subject));
         unset($properties->value);
         try {
-            $properties->value;
-            self::fail('Expected uninitialized property error.');
-        } catch (\Error) {
-            self::assertSame(0, $subject->calls);
+            static::fail('Expected uninitialized property error: ' . $properties->value);
+        } catch (\Throwable $error) {
+            static::assertInstanceOf(\Error::class, $error);
+            static::assertSame(0, $subject->calls);
         }
     }
 
@@ -235,10 +255,11 @@ class PrivatePropertiesTest extends TestCase
     {
         $parent = Target\SharedStaticParent::class;
         $child = Target\SharedStaticChild::class;
-        $properties = new \Okapi\Aop\Invocation\PropertyAccessor($child, $parent);
+        /** @var object{value: int} $properties */
+        $properties = $this->propertyView(new \Okapi\Aop\Invocation\PropertyAccessor($child, $parent));
         $properties->value = 3;
-        self::assertSame(3, $parent::$value);
-        self::assertSame(2, $child::$value);
+        static::assertSame(3, $parent::$value);
+        static::assertSame(2, $child::$value);
         $this->expectException(\LogicException::class);
         PropertyAccess::get($child, 'value');
     }
@@ -248,12 +269,17 @@ class PrivatePropertiesTest extends TestCase
         $subject = new class {
             private string $value = 'initial';
             public int $calls = 0;
-            public function __set(string $name, mixed $value): void { $this->calls++; }
+
+            public function __set(string $name, mixed $value): void
+            {
+                $this->calls++;
+            }
         };
-        $properties = new \Okapi\Aop\Invocation\PropertyAccessor($subject);
+        /** @var object{value: string} $properties */
+        $properties = $this->propertyView(new \Okapi\Aop\Invocation\PropertyAccessor($subject));
         unset($properties->value);
         $properties->value = 'new';
-        self::assertSame(1, $subject->calls);
-        self::assertFalse(isset($properties->value));
+        static::assertSame(1, $subject->calls);
+        static::assertFalse(isset($properties->value));
     }
 }

@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\Transform;
 
@@ -42,7 +43,7 @@ class WovenClassBuilder
      * @param AdviceContainer[] $adviceContainers
      */
     public function __construct(
-        private readonly Code  $code,
+        private readonly Code $code,
         private readonly array $adviceContainers,
     ) {}
 
@@ -77,7 +78,7 @@ class WovenClassBuilder
         $phpNamespace->addUse(JoinPointInjector::class);
 
         // Build the file
-        $file = (string)$phpNamespace;
+        $file = (string) $phpNamespace;
 
         // Inject the JoinPoints
         $this->injectJoinPoints($file);
@@ -93,7 +94,7 @@ class WovenClassBuilder
     private function buildNamespace(): PhpNamespace
     {
         $reflectionClass = $this->code->getReflectionClass();
-        return new PhpNamespace($reflectionClass->getNamespaceName());
+        return new PhpNamespace($reflectionClass->getNamespaceName() ?? '');
     }
 
     /**
@@ -114,7 +115,7 @@ class WovenClassBuilder
         $class->setName($shortClassName);
 
         // Add the use statement
-        $className      = $reflectionClass->getName();
+        $className = $reflectionClass->getName();
         $proxyClassName = $className . $this->cachePaths::PROXIED_SUFFIX;
         $phpNamespace->addUse($proxyClassName);
 
@@ -151,18 +152,20 @@ class WovenClassBuilder
 
         // Add interceptors
         foreach ($this->adviceContainers as $adviceContainer) {
-            if ($adviceContainer instanceof MethodAdviceContainer) {
-                $methodType = JoinPoint::TYPE_METHOD;
+            if (!$adviceContainer instanceof MethodAdviceContainer) {
+                continue;
+            }
 
-                foreach ($adviceContainer->getMatchedMethods() as $matchedMethod) {
-                    $matchedRefMethod  = $matchedMethod->matchedRefMethod;
-                    $matchedMethodName = $matchedRefMethod->getName();
+            $methodType = JoinPoint::TYPE_METHOD;
 
-                    $adviceContainerName = $adviceContainer->getName();
+            foreach ($adviceContainer->getMatchedMethods() as $matchedMethod) {
+                $matchedRefMethod = $matchedMethod->matchedRefMethod;
+                $matchedMethodName = $matchedRefMethod->getName();
 
-                    if (!in_array($adviceContainerName, $value[$methodType][$matchedMethodName] ?? [])) {
-                        $value[$methodType][$matchedMethodName][] = $adviceContainerName;
-                    }
+                $adviceContainerName = $adviceContainer->getName();
+
+                if (!in_array($adviceContainerName, $value[$methodType][$matchedMethodName] ?? [], true)) {
+                    $value[$methodType][$matchedMethodName][] = $adviceContainerName;
                 }
             }
         }
@@ -182,25 +185,27 @@ class WovenClassBuilder
         $methods = [];
 
         foreach ($this->adviceContainers as $adviceContainer) {
-            if ($adviceContainer instanceof MethodAdviceContainer) {
-                foreach ($adviceContainer->getMatchedMethods() as $matchedMethod) {
-                    $refMethod  = $matchedMethod->matchedRefMethod;
-                    $methodName = $refMethod->getName();
+            if (!$adviceContainer instanceof MethodAdviceContainer) {
+                continue;
+            }
 
-                    // Internal methods cannot be woven,
-                    // so we skip them
-                    if ($refMethod->getDeclaringClass()->isInternal()) {
-                        continue;
-                    }
+            foreach ($adviceContainer->getMatchedMethods() as $matchedMethod) {
+                $refMethod = $matchedMethod->matchedRefMethod;
+                $methodName = $refMethod->getName();
 
-                    // Check if the method was already built
-                    if (array_key_exists($methodName, $methods)) {
-                        continue;
-                    }
-
-                    // Build the method
-                    $methods[$methodName] = $this->buildMethod($refMethod);
+                // Internal methods cannot be woven,
+                // so we skip them
+                if ($refMethod->getDeclaringClass()->isInternal()) {
+                    continue;
                 }
+
+                // Check if the method was already built
+                if (array_key_exists($methodName, $methods)) {
+                    continue;
+                }
+
+                // Build the method
+                $methods[$methodName] = $this->buildMethod($refMethod);
             }
         }
 
@@ -220,48 +225,52 @@ class WovenClassBuilder
     {
         $refMethod = new ReflectionMethod($refMethod);
         /** @noinspection PhpUnhandledExceptionInspection */
-        $method = (new Factory)->fromMethodReflection(
-            $refMethod,
-        );
+        $method = (new Factory())->fromMethodReflection($refMethod);
 
         $methodName = $refMethod->getName();
 
         $parameters = $method->getParameters();
         foreach ($parameters as $name => $parameter) {
-            if ($parameter instanceof PromotedParameter) {
-                // Promotion belongs to the original constructor, which the
-                // interceptor invokes. A forwarding method must not own a second slot.
-                $plain = new Parameter($parameter->getName());
-                $plain->setType($parameter->getType());
-                $plain->setNullable($parameter->isNullable());
-                $plain->setReference($parameter->isReference());
-                $plain->setAttributes($parameter->getAttributes());
-                if ($parameter->hasDefaultValue()) {
-                    $plain->setDefaultValue($parameter->getDefaultValue());
-                }
-                $parameters[$name] = $plain;
+            if (!$parameter instanceof PromotedParameter) {
+                continue;
             }
+
+            $plain = new Parameter($parameter->getName());
+            $plain->setType($parameter->getType());
+            $plain->setNullable($parameter->isNullable());
+            $plain->setReference($parameter->isReference());
+            $plain->setAttributes($parameter->getAttributes());
+            if ($parameter->hasDefaultValue()) {
+                $plain->setDefaultValue($parameter->getDefaultValue());
+            }
+            $parameters[$name] = $plain;
         }
-        $method->setParameters($parameters);
+        $method->setParameters(array_values($parameters));
 
         // Add "return" if the method has a return type
-        $return = (string)$method->getReturnType() !== 'void' ? 'return ' : '';
+        $return = (string) $method->getReturnType() !== 'void' ? 'return ' : '';
 
         // Add parameters as an array with the parameter name as key
         $parametersArray = $this->getParametersArray($refMethod);
-        $parameters      = $parametersArray ? ", $parametersArray" : '';
+        $parameters = $parametersArray ? ", {$parametersArray}" : '';
 
         // Static methods don't have $this
         $isStatic = $refMethod->isStatic();
-        $context  = $isStatic ? 'null' : '$this';
+        $context = $isStatic ? 'null' : '$this';
 
-        $body = $return
+        $body =
+            $return
             . 'call_user_func_array('
-            . 'self::$' . JoinPoint::JOIN_POINTS_PARAMETER_NAME
-            . '[\'' . JoinPoint::TYPE_METHOD . '\']'
-            . '[\'' . $methodName . '\'], '
-            . "[$context"
-            . "$parameters]);";
+            . 'self::$'
+            . JoinPoint::JOIN_POINTS_PARAMETER_NAME
+            . '[\''
+            . JoinPoint::TYPE_METHOD
+            . '\']'
+            . '[\''
+            . $methodName
+            . '\'], '
+            . "[{$context}"
+            . "{$parameters}]);";
 
         /**
          * @example
@@ -289,7 +298,7 @@ class WovenClassBuilder
     private function getParametersArray(ReflectionMethod $method): ?string
     {
         $parameters = $method->getParameters();
-        if (empty($parameters)) {
+        if ($parameters === []) {
             return null;
         }
 
@@ -313,10 +322,10 @@ class WovenClassBuilder
     private function injectJoinPoints(string &$file): void
     {
         $reflectionClass = $this->code->getReflectionClass();
-        $shortClassName  = $reflectionClass->getShortName();
+        $shortClassName = $reflectionClass->getShortName();
 
         // language=PHP
-        $code = "DI::get(JoinPointInjector::class)->injectJoinPoints($shortClassName::class);";
+        $code = "DI::get(JoinPointInjector::class)->injectJoinPoints({$shortClassName}::class);";
 
         $file .= "\n" . $code;
     }

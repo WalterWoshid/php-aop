@@ -6,5 +6,5 @@ class TargetClass
 {
     use TargetTrait;
 
-    public function helloWorld() {}
+    public function helloWorld(): void {}
 }

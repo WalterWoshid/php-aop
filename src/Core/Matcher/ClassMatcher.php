@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpInternalEntityUsedInspection */
 namespace Okapi\Aop\Core\Matcher;
 
@@ -28,9 +29,9 @@ class ClassMatcher
      */
     public function match(
         BetterReflectionClass $refClass,
-        AdviceContainer       $adviceContainer,
-        bool                  $explicitClassAspectTargets,
-        bool                  $explicitMethodAspectTargets,
+        AdviceContainer $adviceContainer,
+        bool $explicitClassAspectTargets,
+        bool $explicitMethodAspectTargets,
     ): bool {
         // Check for explicit match
         /** @noinspection PhpConditionAlreadyCheckedInspection */
@@ -42,30 +43,21 @@ class ClassMatcher
 
         // Check for implicit match
         $adviceAttributeInstance = $adviceContainer->adviceAttributeInstance;
-        $classRegex              = $adviceAttributeInstance->class;
-        $namespacedClass         = $refClass->getName();
+        $classRegex = $adviceAttributeInstance->class;
+        if ($classRegex === null) {
+            return false;
+        }
+        $namespacedClass = $refClass->getName();
 
         $classMatches = $classRegex->matches($namespacedClass);
 
-        $interfacesMatches = $this->matchInterfaces(
-            $classRegex,
-            $refClass,
-        );
+        $interfacesMatches = $this->matchInterfaces($classRegex, $refClass);
 
-        $parentClassesMatches = $this->matchParentClasses(
-            $classRegex,
-            $refClass,
-        );
+        $parentClassesMatches = $this->matchParentClasses($classRegex, $refClass);
 
-        $traitsMatches = $this->matchTraits(
-            $classRegex,
-            $refClass,
-        );
+        $traitsMatches = $this->matchTraits($classRegex, $refClass);
 
-        return $classMatches
-            || $interfacesMatches
-            || $parentClassesMatches
-            || $traitsMatches;
+        return $classMatches || $interfacesMatches || $parentClassesMatches || $traitsMatches;
     }
 
     /**
@@ -76,15 +68,9 @@ class ClassMatcher
      *
      * @return bool
      */
-    protected function matchInterfaces(
-        Regex                 $classRegex,
-        BetterReflectionClass $reflectionClass,
-    ): bool {
-        return $this->matchType(
-            'InterfaceNames',
-            $classRegex,
-            $reflectionClass,
-        );
+    protected function matchInterfaces(Regex $classRegex, BetterReflectionClass $reflectionClass): bool
+    {
+        return $this->matchType('InterfaceNames', $classRegex, $reflectionClass);
     }
 
     /**
@@ -95,15 +81,9 @@ class ClassMatcher
      *
      * @return bool
      */
-    protected function matchParentClasses(
-        Regex                 $classRegex,
-        BetterReflectionClass $reflectionClass,
-    ): bool {
-        return $this->matchType(
-            'ParentClassNames',
-            $classRegex,
-            $reflectionClass,
-        );
+    protected function matchParentClasses(Regex $classRegex, BetterReflectionClass $reflectionClass): bool
+    {
+        return $this->matchType('ParentClassNames', $classRegex, $reflectionClass);
     }
 
     /**
@@ -114,15 +94,9 @@ class ClassMatcher
      *
      * @return bool
      */
-    protected function matchTraits(
-        Regex                 $classRegex,
-        BetterReflectionClass $reflectionClass,
-    ): bool {
-        return $this->matchType(
-            'Traits',
-            $classRegex,
-            $reflectionClass,
-        );
+    protected function matchTraits(Regex $classRegex, BetterReflectionClass $reflectionClass): bool
+    {
+        return $this->matchType('Traits', $classRegex, $reflectionClass);
     }
 
     /**
@@ -134,26 +108,24 @@ class ClassMatcher
      *
      * @return bool
      */
-    protected function matchType(
-        string                $type,
-        Regex                 $classRegex,
-        BetterReflectionClass $reflectionClass,
-    ): bool {
+    protected function matchType(string $type, Regex $classRegex, BetterReflectionClass $reflectionClass): bool
+    {
         try {
-            $method = 'get' . $type;
-            /** @var (BetterReflection|string)[] $reflections */
-            $reflections = $reflectionClass->$method();
+            $reflections = match ($type) {
+                'InterfaceNames' => $reflectionClass->getInterfaceNames(),
+                'ParentClassNames' => $reflectionClass->getParentClassNames(),
+                'Traits' => $reflectionClass->getTraits(),
+                default => throw new \InvalidArgumentException('Unsupported reflection type.'),
+            };
             foreach ($reflections as $reflection) {
                 if ($classRegex->matches(
-                    $reflection instanceof BetterReflection
-                        ? $reflection->getName()
-                        : $reflection,
+                    $reflection instanceof BetterReflection ? $reflection->getName() : $reflection,
                 )) {
                     return true;
                 }
             }
         } catch (IdentifierNotFound) {
-            // Do nothing
+            return false;
         }
 
         return false;

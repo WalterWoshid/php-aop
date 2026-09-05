@@ -1,11 +1,10 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\Container;
 
 use Closure;
 use DI\Attribute\Inject;
-use Error;
-use Exception;
 use Okapi\Aop\Attributes\Aspect;
 use Okapi\Aop\Component\ComponentType;
 use Okapi\Aop\Core\Attributes\Base\BaseAdvice;
@@ -17,6 +16,7 @@ use ReflectionAttribute as BaseReflectionAttribute;
 use ReflectionClass as BaseReflectionClass;
 use ReflectionMethod as BaseReflectionMethod;
 use ReflectionProperty as BaseReflectionProperty;
+use Throwable;
 
 /**
  * # Aspect Manager
@@ -35,9 +35,7 @@ class AspectManager
     /**
      * The list of aspects class strings.
      *
-     * @param class-string[] $aspects
-     *
-     * @return void
+     * @var class-string[]
      */
     private array $aspects = [];
 
@@ -56,7 +54,7 @@ class AspectManager
     private array $adviceContainers = [];
 
     /**
-     * @var null|Closure(class-string, ): object
+     * @var null|Closure(class-string, ComponentType): object
      */
     private ?Closure $dependencyInjectionHandler = null;
 
@@ -71,10 +69,7 @@ class AspectManager
      */
     public function addAspects(array $aspectClasses): void
     {
-        $this->aspects = array_merge(
-            $this->aspects,
-            $aspectClasses,
-        );
+        $this->aspects = array_merge($this->aspects, $aspectClasses);
     }
 
     // endregion
@@ -84,9 +79,8 @@ class AspectManager
     /**
      * @param null|(Closure(class-string, ComponentType): object) $dependencyInjectionHandler
      */
-    public function registerCustomDependencyInjectionHandler(
-        ?Closure $dependencyInjectionHandler
-    ): void {
+    public function registerCustomDependencyInjectionHandler(?Closure $dependencyInjectionHandler): void
+    {
         $this->dependencyInjectionHandler = $dependencyInjectionHandler;
     }
 
@@ -130,46 +124,36 @@ class AspectManager
         if (array_key_exists($aspectClassName, $this->aspectAdviceContainers)) {
             // @codeCoverageIgnoreStart
             return;
+
             // @codeCoverageIgnoreEnd
         }
 
         // Validate the aspect
         if (gettype($aspectClassName) !== 'string') {
-            throw new InvalidAspectClassNameException;
+            throw new InvalidAspectClassNameException();
         }
 
-        // Instantiate the aspect
-        if ($this->dependencyInjectionHandler) {
-            $aspectInstance = ($this->dependencyInjectionHandler)(
-                $aspectClassName,
-                ComponentType::ASPECT,
-            );
-        } else {
-            try {
-                $aspectInstance = DI::make($aspectClassName);
-            } catch (Error|Exception) {
-                throw new AspectNotFoundException($aspectClassName);
-            }
-        }
+        // Instantiate the aspect.
+        $aspectInstance = $this->instantiateAspect($aspectClassName);
 
         // Create a reflection of the aspect
         $aspectRefClass = new BaseReflectionClass($aspectInstance);
 
         // Validate the aspect attribute
-        $attributes = $aspectRefClass->getAttributes(
-            Aspect::class,
-            BaseReflectionAttribute::IS_INSTANCEOF,
-        );
+        $attributes = $aspectRefClass->getAttributes(Aspect::class, BaseReflectionAttribute::IS_INSTANCEOF);
         if (!$attributes) {
             throw new MissingAspectAttributeException($aspectClassName);
         }
 
         // Iterate over the aspect methods and properties
-        $methods    = $aspectRefClass->getMethods();
+        $methods = $aspectRefClass->getMethods();
         $properties = $aspectRefClass->getProperties();
         /** @var (BaseReflectionMethod|BaseReflectionProperty)[] $adviceRefMembers */
         $adviceRefMembers = array_merge($methods, $properties);
         foreach ($adviceRefMembers as $adviceRefMember) {
+            if (!$adviceRefMember instanceof BaseReflectionMethod) {
+                continue;
+            }
             // Get the advices
             $adviceAttributes = $adviceRefMember->getAttributes(
                 BaseAdvice::class,
@@ -186,9 +170,22 @@ class AspectManager
                     $adviceRefMember,
                 );
 
-                $this->aspectAdviceContainers[$aspectClassName][]      = $adviceContainer;
+                $this->aspectAdviceContainers[$aspectClassName][] = $adviceContainer;
                 $this->adviceContainers[$adviceContainer->getName()][] = $adviceContainer;
             }
+        }
+    }
+
+    /** @param class-string $aspectClassName */
+    private function instantiateAspect(string $aspectClassName): object
+    {
+        if ($this->dependencyInjectionHandler !== null) {
+            return ($this->dependencyInjectionHandler)($aspectClassName, ComponentType::ASPECT);
+        }
+        try {
+            return DI::make($aspectClassName);
+        } catch (Throwable) {
+            throw new AspectNotFoundException($aspectClassName);
         }
     }
 
@@ -237,13 +234,10 @@ class AspectManager
      */
     public function getAdviceContainersByAdviceNames(array $adviceNames): array
     {
-        return array_reduce(
-            $adviceNames,
-            fn (array $carry, string $adviceName) => array_merge(
-                $carry,
-                $this->adviceContainers[$adviceName] ?? [],
-            ),
-            [],
-        );
+        $containers = [];
+        foreach ($adviceNames as $adviceName) {
+            $containers = array_merge($containers, $this->adviceContainers[$adviceName] ?? []);
+        }
+        return $containers;
     }
 }

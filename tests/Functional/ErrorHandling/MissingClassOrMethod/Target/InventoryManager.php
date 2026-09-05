@@ -1,9 +1,11 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\ErrorHandling\MissingClassOrMethod\Target;
 
 class InventoryManager
 {
+    /** @var array<string, int> */
     private array $items = [];
 
     public function addItem(string $itemName, int $quantity): void

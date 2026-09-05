@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\ExceptionInsideAdvice\Aspect;
 
@@ -19,6 +20,7 @@ class CommentFilterAspect
     )]
     public function checkForInappropriateLanguage(BeforeMethodInvocation $invocation): void
     {
+        /** @var string $comment */
         $comment = $invocation->getArgument('comment');
 
         $inappropriateWords = ['bad', 'terrible', 'awful'];

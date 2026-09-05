@@ -23,24 +23,21 @@ class JoinPointContainer
      * JoinPointContainer constructor.
      *
      * @param class-string                             $className
-     * @param array<'method', array<string, string[]>> $joinPointPropertyValue
+     * @param array<string, array<string, string[]>> $joinPointPropertyValue
      */
-    public function __construct(
-        string $className,
-        array  $joinPointPropertyValue,
-    ) {
+    public function __construct(string $className, array $joinPointPropertyValue)
+    {
         foreach ($joinPointPropertyValue as $joinPointType => $joinPointValue) {
-            if ($joinPointType === JoinPoint::TYPE_METHOD) {
-                foreach ($joinPointValue as $methodName => $joinPoints) {
-                    $this->methodJoinPointContainers[] = DI::make(
-                        MethodJoinPointContainer::class,
-                        [
-                            'className'  => $className,
-                            'methodName' => $methodName,
-                            'joinPoints' => $joinPoints,
-                        ],
-                    );
-                }
+            if ($joinPointType !== JoinPoint::TYPE_METHOD) {
+                continue;
+            }
+
+            foreach ($joinPointValue as $methodName => $joinPoints) {
+                $this->methodJoinPointContainers[] = DI::make(MethodJoinPointContainer::class, [
+                    'className' => $className,
+                    'methodName' => $methodName,
+                    'joinPoints' => $joinPoints,
+                ]);
             }
         }
     }
@@ -48,14 +45,14 @@ class JoinPointContainer
     /**
      * Get the value of the join point container.
      *
-     * @return array<'method', array<string, string[]>>
+     * @return array<'method', array<string, array{\Okapi\Aop\Core\Intercept\Interceptor, string}>>
      */
     public function getValue(): array
     {
         $value = [];
 
         foreach ($this->methodJoinPointContainers as $methodJoinPointContainer) {
-            $methodName     = $methodJoinPointContainer->methodName;
+            $methodName = $methodJoinPointContainer->methodName;
             $joinPointValue = $methodJoinPointContainer->getValue();
 
             $value[JoinPoint::TYPE_METHOD][$methodName] = $joinPointValue;

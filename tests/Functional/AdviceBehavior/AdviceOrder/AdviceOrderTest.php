@@ -28,14 +28,11 @@ class AdviceOrderTest extends TestCase
         $this->assertWillBeWoven(ArticleManager::class);
         $articleManager = new ArticleManager();
 
-        $articleManager->createArticle(
-            'Hello World',
-            'AOP is awesome!',
-        );
+        $articleManager->createArticle('Hello World', 'AOP is awesome!');
 
         $stackTrace = StackTrace::getInstance();
 
-        $this->assertEquals(
+        static::assertEquals(
             [
                 'checkForSpam',
                 'validateContent',

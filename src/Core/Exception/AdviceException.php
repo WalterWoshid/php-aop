@@ -7,6 +7,4 @@ namespace Okapi\Aop\Core\Exception;
  *
  * This exception is thrown when an advice is not valid.
  */
-abstract class AdviceException extends AopException
-{
-}
+abstract class AdviceException extends AopException {}

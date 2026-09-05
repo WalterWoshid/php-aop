@@ -20,7 +20,11 @@ trait ClassLoaderMockTrait
             $this->findClassLoader();
         }
 
-        return $this->classLoader->findFile($class);
+        assert($this->classLoader instanceof ClassLoader, 'The invocation must match the configured test fixture.');
+        /** @var mixed $file */
+        $file = $this->classLoader->findFile($class);
+        Assert::assertIsString($file);
+        return $file;
     }
 
     private function findOriginalClassMock(string $class): string
@@ -29,66 +33,58 @@ trait ClassLoaderMockTrait
             $this->findClassLoader();
         }
 
+        assert($this->classLoader instanceof ClassLoader, 'The invocation must match the configured test fixture.');
         $original = new ReflectionProperty(ClassLoader::class, 'originalClassLoader');
-        $original = $original->getValue($this->classLoader);
-        return $original->findFile($class);
+        /** @var mixed $loader */
+        $loader = $original->getValue($this->classLoader);
+        Assert::assertInstanceOf(\Composer\Autoload\ClassLoader::class, $loader);
+        $file = $loader->findFile($class);
+        Assert::assertIsString($file);
+        return $file;
     }
 
     private function findClassLoader(): void
     {
         foreach (spl_autoload_functions() as $function) {
-            if (is_array($function) && $function[0] instanceof ClassLoader) {
-                $this->classLoader = $function[0];
-                break;
+            if (!(is_array($function) && $function[0] instanceof ClassLoader)) {
+                continue;
             }
+
+            $this->classLoader = $function[0];
+            break;
         }
     }
 
     public function assertWillBeWoven(string $className): void
     {
         $originalFilePath = Path::resolve($this->findOriginalClassMock($className));
+        Assert::assertIsString($originalFilePath);
 
-        $wovenPath =
-            FilterInjector::PHP_FILTER_READ .
-            StreamFilter::FILTER_ID . '/resource=' .
-            $originalFilePath;
+        $wovenPath = FilterInjector::PHP_FILTER_READ . StreamFilter::FILTER_ID . '/resource=' . $originalFilePath;
 
         $filePathMock = $this->findClassMock($className);
 
-        Assert::assertEquals(
-            $wovenPath,
-            $filePathMock,
-            "$className will not be woven",
-        );
+        Assert::assertEquals($wovenPath, $filePathMock, "{$className} will not be woven");
     }
 
     public function assertAspectLoadedFromCache(string $className): void
     {
         $filePath = Path::resolve($this->findOriginalClassMock($className));
+        Assert::assertIsString($filePath);
 
-        $cachePath =
-            FilterInjector::PHP_FILTER_READ .
-            CachedStreamFilter::CACHED_FILTER_ID . '/resource=' .
-            $filePath;
+        $cachePath = FilterInjector::PHP_FILTER_READ . CachedStreamFilter::CACHED_FILTER_ID . '/resource=' . $filePath;
 
         $filePathMock = $this->findClassMock($className);
 
-        Assert::assertEquals(
-            $cachePath,
-            $filePathMock,
-            "$className will not be loaded from cache",
-        );
+        Assert::assertEquals($cachePath, $filePathMock, "{$className} will not be loaded from cache");
     }
 
     public function assertAspectNotApplied(string $className): void
     {
         $originalFilePath = Path::resolve($this->findOriginalClassMock($className));
-        $filePathMock     = $this->findClassMock($className);
+        Assert::assertIsString($originalFilePath);
+        $filePathMock = $this->findClassMock($className);
 
-        Assert::assertEquals(
-            $originalFilePath,
-            $filePathMock,
-            "$className will be woven",
-        );
+        Assert::assertEquals($originalFilePath, $filePathMock, "{$className} will be woven");
     }
 }

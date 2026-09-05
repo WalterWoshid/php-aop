@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\ModifyArgument\Aspect;
 
@@ -10,14 +11,12 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\ModifyArgument\Target\NumberHelper
 #[Aspect]
 class NumberHelperAspect
 {
-    #[Before(
-        class: NumberHelper::class,
-        method: 'sumArray',
-    )]
+    #[Before(class: NumberHelper::class, method: 'sumArray')]
     public function removeNegativeNumbers(BeforeMethodInvocation $invocation): void
     {
+        /** @var array<array-key, int> $numbers */
         $numbers = $invocation->getArgument(0);
-        $numbers = array_filter($numbers, fn($number) => $number >= 0);
+        $numbers = array_filter($numbers, static fn($number) => $number >= 0);
         $invocation->setArgument(0, $numbers);
     }
 }

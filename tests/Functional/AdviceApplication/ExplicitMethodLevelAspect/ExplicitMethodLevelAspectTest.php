@@ -70,8 +70,8 @@ class ExplicitMethodLevelAspectTest extends TestCase
 
         $firstLog = $logs[0];
         $wildcard = 'Method *::* executed in * seconds.';
-        $regex    = Regex::fromWildcard($wildcard);
-        $matches  = $regex->matches($firstLog);
+        $regex = Regex::fromWildcard($wildcard);
+        $matches = $regex->matches($firstLog);
         $this->assertTrue($matches);
     }
 }

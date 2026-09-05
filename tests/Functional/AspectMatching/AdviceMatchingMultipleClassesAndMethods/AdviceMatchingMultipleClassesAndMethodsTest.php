@@ -26,12 +26,12 @@ class AdviceMatchingMultipleClassesAndMethodsTest extends TestCase
         $this->assertWillBeWoven(Product::class);
         $product = new Product();
         $productPrice = $product->getPrice();
-        $this->assertEquals(90.00, $productPrice);
+        static::assertSame(90.00, $productPrice);
 
         $this->assertWillBeWoven(Order::class);
         $order = new Order();
         $orderTotal = $order->getTotal();
-        $this->assertEquals(400.00, $orderTotal);
+        static::assertSame(400.00, $orderTotal);
     }
 
     public function testCachedAdviceMatchingMultipleClassesAndMethods(): void
@@ -41,11 +41,11 @@ class AdviceMatchingMultipleClassesAndMethodsTest extends TestCase
         $this->assertAspectLoadedFromCache(Product::class);
         $product = new Product();
         $productPrice = $product->getPrice();
-        $this->assertEquals(90.00, $productPrice);
+        static::assertSame(90.00, $productPrice);
 
         $this->assertAspectLoadedFromCache(Order::class);
         $order = new Order();
         $orderTotal = $order->getTotal();
-        $this->assertEquals(400.00, $orderTotal);
+        static::assertSame(400.00, $orderTotal);
     }
 }

@@ -13,6 +13,7 @@ class MeasurePerformanceKernel extends AopKernel
     protected Environment $environment = Environment::DEVELOPMENT;
 
     /** @noinspection PhpFullyQualifiedNameUsageInspection */
+    /** @var array<array-key, class-string> */
     protected array $aspects = [
         \Okapi\Aop\Tests\Performance\Aspect\AddOneAspect::class,
     ];

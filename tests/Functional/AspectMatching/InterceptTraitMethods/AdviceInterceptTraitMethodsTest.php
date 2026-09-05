@@ -34,7 +34,7 @@ class AdviceInterceptTraitMethodsTest extends TestCase
         $targetClass->helloHere();
 
         $stackTrace = StackTrace::getInstance();
-        $this->assertEquals(
+        static::assertEquals(
             [
                 // First call to TargetClass::helloWorld()
                 'DefaultAspect',

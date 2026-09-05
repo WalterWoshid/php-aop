@@ -29,9 +29,6 @@ class AdviceMatchingAbstractMethodTest extends TestCase
         $result = $uploader->upload('C:\Windows\Temp\file.txt');
 
         /** @noinspection PhpConditionAlreadyCheckedInspection */
-        $this->assertEquals(
-            'C:/Windows/Temp/file.txt',
-            $result
-        );
+        static::assertSame('C:/Windows/Temp/file.txt', $result);
     }
 }

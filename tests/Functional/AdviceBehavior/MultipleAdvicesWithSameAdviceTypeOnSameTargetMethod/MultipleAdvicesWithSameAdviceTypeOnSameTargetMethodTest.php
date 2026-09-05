@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnusedLocalVariableInspection */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\MultipleAdvicesWithSameAdviceTypeOnSameTargetMethod;
 
@@ -15,8 +16,8 @@ class MultipleAdvicesWithSameAdviceTypeOnSameTargetMethodTest extends TestCase
 {
     use ClassLoaderMockTrait;
 
-    public const AVATAR_PATH              = __DIR__ . '/../../../media/avatar.png';
-    public const AVATAR_HQ_PATH           = __DIR__ . '/../../../media/avatar-HQ.png';
+    public const AVATAR_PATH = __DIR__ . '/../../../media/avatar.png';
+    public const AVATAR_HQ_PATH = __DIR__ . '/../../../media/avatar-HQ.png';
     public const AVATAR_WRONG_FORMAT_PATH = __DIR__ . '/../../../media/avatar-wrong-format.jpg';
 
     /**
@@ -32,49 +33,31 @@ class MultipleAdvicesWithSameAdviceTypeOnSameTargetMethodTest extends TestCase
         $profileController = new ProfileController();
 
         // Valid avatar
-        $path = $profileController->uploadProfilePicture(
-            'avatar',
-            self::AVATAR_PATH,
-        );
+        $path = $profileController->uploadProfilePicture('avatar', self::AVATAR_PATH);
 
         // No exception thrown
-        $this->assertTrue(true);
+        static::assertTrue(true);
 
-        $this->assertSame(
-            'https://example.com/avatar',
-            $path,
-        );
+        static::assertSame('https://example.com/avatar', $path);
 
         // Invalid avatar size
         $exceptionThrown = false;
         try {
-            $profileController->uploadProfilePicture(
-                'avatar',
-                self::AVATAR_HQ_PATH,
-            );
+            $profileController->uploadProfilePicture('avatar', self::AVATAR_HQ_PATH);
         } catch (Exception $e) {
             $exceptionThrown = true;
-            $this->assertSame(
-                'Image is too big',
-                $e->getMessage(),
-            );
+            static::assertSame('Image is too big', $e->getMessage());
         }
-        $this->assertTrue($exceptionThrown);
+        static::assertTrue($exceptionThrown);
 
         // Invalid avatar format
         $exceptionThrown = false;
         try {
-            $profileController->uploadProfilePicture(
-                'avatar',
-                self::AVATAR_WRONG_FORMAT_PATH,
-            );
+            $profileController->uploadProfilePicture('avatar', self::AVATAR_WRONG_FORMAT_PATH);
         } catch (Exception $e) {
             $exceptionThrown = true;
-            $this->assertSame(
-                'Invalid image format',
-                $e->getMessage(),
-            );
+            static::assertSame('Invalid image format', $e->getMessage());
         }
-        $this->assertTrue($exceptionThrown);
+        static::assertTrue($exceptionThrown);
     }
 }

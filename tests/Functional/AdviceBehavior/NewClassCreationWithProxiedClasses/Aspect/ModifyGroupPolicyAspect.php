@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\NewClassCreationWithProxiedClasses\Aspect;
 
@@ -10,13 +11,7 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\NewClassCreationWithProxiedClasses
 #[Aspect]
 class ModifyGroupPolicyAspect
 {
-    #[Around(
-        class: GroupMemberService::class,
-        method: '*',
-    )]
-    #[Around(
-        class: GroupPolicy::class,
-        method: '*',
-    )]
+    #[Around(class: GroupMemberService::class, method: '*')]
+    #[Around(class: GroupPolicy::class, method: '*')]
     public function doNothing(): void {}
 }

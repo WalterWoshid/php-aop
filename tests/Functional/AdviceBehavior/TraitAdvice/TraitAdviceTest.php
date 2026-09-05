@@ -26,9 +26,9 @@ class TraitAdviceTest extends TestCase
         $router = new Router();
 
         $routes = $router->getRoutes();
-        $this->assertCount(1, $routes);
+        static::assertCount(1, $routes);
 
         $cachedRoutes = RouteCachingAspect::$cachedRoutes;
-        $this->assertCount(1, $cachedRoutes);
+        static::assertCount(1, $cachedRoutes);
     }
 }

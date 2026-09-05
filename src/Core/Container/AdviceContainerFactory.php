@@ -33,46 +33,43 @@ class AdviceContainerFactory
      * @noinspection PhpInconsistentReturnPointsInspection
      */
     public function createAdviceContainer(
-        string                  $aspectClassName,
-        object                  $aspectInstance,
-        BaseReflectionClass     $aspectRefClass,
+        string $aspectClassName,
+        object $aspectInstance,
+        BaseReflectionClass $aspectRefClass,
         BaseReflectionAttribute $adviceAttribute,
-        BaseReflectionMethod    $adviceRefMethod,
+        BaseReflectionMethod $adviceRefMethod,
     ): AdviceContainer {
         // Instantiate the advice attribute
         $adviceAttributeInstance = $adviceAttribute->newInstance();
 
         // Check if the aspect are implicit or class/method-level explicit
-        $isExplicit = (bool)$aspectRefClass->getAttributes(Attribute::class);
+        $isExplicit = (bool) $aspectRefClass->getAttributes(Attribute::class);
 
         if ($adviceAttributeInstance instanceof MethodAdvice) {
             $methodAdviceContainer = DI::make(MethodAdviceContainer::class, [
-                'aspectClassName'         => $aspectClassName,
-                'aspectInstance'          => $aspectInstance,
-                'aspectRefClass'          => $aspectRefClass,
-                'adviceAttribute'         => $adviceAttribute,
+                'aspectClassName' => $aspectClassName,
+                'aspectInstance' => $aspectInstance,
+                'aspectRefClass' => $aspectRefClass,
+                'adviceAttribute' => $adviceAttribute,
                 'adviceAttributeInstance' => $adviceAttributeInstance,
-                'adviceRefMethod'         => $adviceRefMethod,
-                'isExplicit'              => $isExplicit,
+                'adviceRefMethod' => $adviceRefMethod,
+                'isExplicit' => $isExplicit,
             ]);
 
             // If the aspect is implicit,
             // check if the class and method names are set
             if (!$isExplicit) {
                 if (!$adviceAttributeInstance->class) {
-                    throw new MissingClassNameException(
-                        $methodAdviceContainer->getName(),
-                    );
+                    throw new MissingClassNameException($methodAdviceContainer->getName());
                 }
 
                 if (!$adviceAttributeInstance->method) {
-                    throw new MissingMethodNameException(
-                        $methodAdviceContainer->getName(),
-                    );
+                    throw new MissingMethodNameException($methodAdviceContainer->getName());
                 }
             }
 
             return $methodAdviceContainer;
         }
+        throw new \LogicException('Unsupported advice type.');
     }
 }

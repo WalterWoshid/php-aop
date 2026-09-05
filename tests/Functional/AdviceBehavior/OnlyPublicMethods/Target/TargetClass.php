@@ -6,9 +6,9 @@ class TargetClass extends TargetParentClass
 {
     use TargetTrait;
 
-    public function helloWorld() {}
+    public function helloWorld(): void {}
 
-    protected function helloHere() {}
+    protected function helloHere(): void {}
 
     public function askParentHelloHere(): void
     {

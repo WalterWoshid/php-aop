@@ -12,13 +12,14 @@ class Kernel extends AopKernel
 
     protected function dependencyInjectionHandler(): ?Closure
     {
-        return function (string $className) {
+        return /** @param class-string $className */ static function (string $className) {
             echo 'Generating aspect/transformer instance: ' . $className . PHP_EOL;
 
-            return new $className();
+            return (new \ReflectionClass($className))->newInstance();
         };
     }
 
+    /** @var array<array-key, class-string> */
     protected array $aspects = [
         Aspect::class,
     ];

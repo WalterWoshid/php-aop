@@ -1,0 +1,9 @@
+php-version = "8.1"
+
+[source]
+paths = ["tools/mago/tests/valid"]
+includes = ["src", "vendor"]
+patches = ["tools/mago/patches"]
+
+[analyzer]
+check-missing-type-hints = true

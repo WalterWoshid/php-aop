@@ -1,8 +1,15 @@
 <?php
+
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties\Target;
 
 class StaticParent
 {
+    /** @var list<string> */
     private static array $tokens = ['parent'];
-    public static function parentTokens(): array { return self::$tokens; }
+
+    /** @return list<string> */
+    public static function parentTokens(): array
+    {
+        return self::$tokens;
+    }
 }

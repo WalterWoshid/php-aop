@@ -9,9 +9,6 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\MagicConstants\Target\TargetParent
 #[Aspect]
 class AspectOnParent
 {
-    #[After(
-        class: TargetParent::class  . '*',
-        method: '*',
-    )]
+    #[After(class: TargetParent::class . '*', method: '*')]
     public function doNothing(): void {}
 }

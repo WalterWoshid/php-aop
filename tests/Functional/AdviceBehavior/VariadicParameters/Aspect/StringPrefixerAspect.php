@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\VariadicParameters\Aspect;
 
@@ -12,13 +13,12 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\VariadicParameters\Target\IdHelper
 #[Attribute]
 class StringPrefixerAspect
 {
-    #[Before(
-        IdHelper::class,
-        'createIds',
-    )]
+    #[Before(IdHelper::class, 'createIds')]
     public function prefixString(BeforeMethodInvocation $invocation): void
     {
+        /** @var string $prefix */
         $prefix = $invocation->getArgument('prefix');
+        /** @var list<string> $ids */
         $ids = $invocation->getArgument('ids');
 
         foreach ($ids as &$id) {

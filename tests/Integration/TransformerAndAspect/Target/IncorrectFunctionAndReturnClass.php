@@ -2,11 +2,10 @@
 
 namespace Okapi\Aop\Tests\Integration\TransformerAndAspect\Target;
 
-class DeprecatedAndWrongClass
+class IncorrectFunctionAndReturnClass
 {
     public function checkIfFloat(mixed $value): bool
     {
-        /** @noinspection PhpDeprecationInspection */
-        return !is_real($value);
+        return !is_int($value);
     }
 }

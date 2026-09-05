@@ -8,6 +8,7 @@ class Logger
 {
     use Singleton;
 
+    /** @var list<string> */
     private array $log = [];
 
     public function log(string $message): void
@@ -15,6 +16,7 @@ class Logger
         $this->log[] = $message;
     }
 
+    /** @return list<string> */
     public function getLogs(): array
     {
         return $this->log;

@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\MultipleAdvicesWithSameAdviceTypeOnSameTargetMethod\Aspect;
 
@@ -14,18 +15,16 @@ class ProfilePictureValidatorAspect
     /**
      * @throws Exception
      */
-    #[Before(
-        class: ProfileController::class,
-        method: 'uploadProfilePicture',
-    )]
+    #[Before(class: ProfileController::class, method: 'uploadProfilePicture')]
     public function checkImageFormat(BeforeMethodInvocation $invocation): void
     {
+        /** @var string $image */
         $image = $invocation->getArgument('image');
         $imageInfo = getimagesize($image);
 
         $allowedFormats = [IMAGETYPE_PNG];
 
-        if (!$imageInfo || !in_array($imageInfo[2], $allowedFormats)) {
+        if (!$imageInfo || !in_array($imageInfo[2], $allowedFormats, true)) {
             throw new Exception('Invalid image format');
         }
     }
@@ -33,19 +32,17 @@ class ProfilePictureValidatorAspect
     /**
      * @throws Exception
      */
-    #[Before(
-        class: ProfileController::class,
-        method: 'uploadProfilePicture',
-    )]
+    #[Before(class: ProfileController::class, method: 'uploadProfilePicture')]
     public function checkImageSize(BeforeMethodInvocation $invocation): void
     {
+        /** @var string $image */
         $image = $invocation->getArgument('image');
         $imageSize = filesize($image);
 
         // 1 MB
-        $maxSize = 1048576;
+        $maxSize = 1_048_576;
 
-        if ($imageSize > $maxSize) {
+        if ($imageSize !== false && $imageSize > $maxSize) {
             throw new Exception('Image is too big');
         }
     }

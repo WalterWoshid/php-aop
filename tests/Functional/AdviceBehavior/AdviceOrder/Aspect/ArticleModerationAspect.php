@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 /** @noinspection PhpMissingReturnTypeInspection */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\AdviceOrder\Aspect;
@@ -11,34 +12,22 @@ use Okapi\Aop\Tests\Stubs\Etc\StackTrace;
 #[Aspect]
 class ArticleModerationAspect
 {
-    #[After(
-        class: ArticleManager::class,
-        method: 'createArticle',
-        order: 1,
-    )]
-    public function validateContent()
+    #[After(class: ArticleManager::class, method: 'createArticle', order: 1)]
+    public function validateContent(): void
     {
         $stackTrace = StackTrace::getInstance();
         $stackTrace->addTrace('validateContent');
     }
 
-    #[After(
-        class: ArticleManager::class,
-        method: 'createArticle',
-        order: -10,
-    )]
-    public function checkForSpam()
+    #[After(class: ArticleManager::class, method: 'createArticle', order: -10)]
+    public function checkForSpam(): void
     {
         $stackTrace = StackTrace::getInstance();
         $stackTrace->addTrace('checkForSpam');
     }
 
-    #[After(
-        class: ArticleManager::class,
-        method: 'createArticle',
-        order: 10,
-    )]
-    public function ensureProperFormatting()
+    #[After(class: ArticleManager::class, method: 'createArticle', order: 10)]
+    public function ensureProperFormatting(): void
     {
         $stackTrace = StackTrace::getInstance();
         $stackTrace->addTrace('ensureProperFormatting');

@@ -1,9 +1,13 @@
 <?php
+
 namespace Okapi\Aop\Invocation;
 
 use Okapi\Aop\PropertyAccess;
 
-/** A property view of the subject; never a replacement for the subject itself. */
+/**
+ * A property view of the subject; never a replacement for the subject itself.
+ *
+ */
 final class PropertyAccessor
 {
     public function __construct(
@@ -13,8 +17,7 @@ final class PropertyAccessor
 
     public function &__get(string $name): mixed
     {
-        $value =& PropertyAccess::reference($this->subject, $name, $this->declaringClass);
-        return $value;
+        return PropertyAccess::reference($this->subject, $name, $this->declaringClass);
     }
 
     public function __set(string $name, mixed $value): void

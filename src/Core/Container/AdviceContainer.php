@@ -10,6 +10,8 @@ use ReflectionClass as BaseReflectionClass;
  * # Advice Container
  *
  * This class is used to store information about an advice.
+ *
+ * @template TAdvice of BaseAdvice = BaseAdvice
  */
 abstract class AdviceContainer
 {
@@ -20,14 +22,14 @@ abstract class AdviceContainer
      * @param object                  $aspectInstance
      * @param BaseReflectionClass     $aspectRefClass
      * @param BaseReflectionAttribute $adviceAttribute
-     * @param BaseAdvice              $adviceAttributeInstance
+     * @param TAdvice                 $adviceAttributeInstance
      */
     public function __construct(
-        public readonly string                     $aspectClassName,
-        public readonly object                     $aspectInstance,
-        public readonly BaseReflectionClass        $aspectRefClass,
+        public readonly string $aspectClassName,
+        public readonly object $aspectInstance,
+        public readonly BaseReflectionClass $aspectRefClass,
         protected readonly BaseReflectionAttribute $adviceAttribute,
-        public readonly BaseAdvice                 $adviceAttributeInstance,
+        public readonly BaseAdvice $adviceAttributeInstance,
     ) {}
 
     /**

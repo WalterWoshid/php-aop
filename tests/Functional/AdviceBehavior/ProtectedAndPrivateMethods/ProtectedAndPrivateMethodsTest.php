@@ -29,17 +29,11 @@ class ProtectedAndPrivateMethodsTest extends TestCase
         $bankingSystem->deposit(100.0);
         $balance = $bankingSystem->getBalance();
 
-        $this->assertEquals(
-            100.0,
-            $balance,
-        );
+        static::assertSame(100.0, $balance);
 
         $bankingSystem->withdraw(50.0);
         $balance = $bankingSystem->getBalance();
 
-        $this->assertEquals(
-            50.0,
-            $balance,
-        );
+        static::assertSame(50.0, $balance);
     }
 }

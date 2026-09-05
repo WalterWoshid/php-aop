@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpExpressionResultUnusedInspection */
 namespace Okapi\Aop\Tests\Functional\ErrorHandling\MissingClassOrMethod;
 
@@ -35,10 +36,7 @@ class MissingClassOrMethodTest extends TestCase
             $error = $e;
         }
 
-        $this->assertInstanceOf(
-            MissingClassNameException::class,
-            $error,
-        );
+        static::assertInstanceOf(MissingClassNameException::class, $error);
     }
 
     /**
@@ -57,10 +55,7 @@ class MissingClassOrMethodTest extends TestCase
             $error = $e;
         }
 
-        $this->assertInstanceOf(
-            MissingMethodNameException::class,
-            $error,
-        );
+        static::assertInstanceOf(MissingMethodNameException::class, $error);
     }
 
     /**
@@ -82,8 +77,6 @@ class MissingClassOrMethodTest extends TestCase
         $missingClassNameException = $error instanceof MissingClassNameException;
         $missingMethodNameException = $error instanceof MissingMethodNameException;
 
-        $this->assertTrue(
-            $missingClassNameException || $missingMethodNameException,
-        );
+        static::assertTrue($missingClassNameException || $missingMethodNameException);
     }
 }

@@ -32,7 +32,7 @@ class VariadicParametersTest extends TestCase
 
         $expectedResult = ['prefix-id1', 'prefix-id2', 'prefix-id3'];
 
-        $this->assertSame($expectedResult, $result);
+        static::assertSame($expectedResult, $result);
     }
 
     public function testVariadicParametersWithoutAop(): void
@@ -47,6 +47,6 @@ class VariadicParametersTest extends TestCase
 
         $expectedResult = ['id1', 'id2', 'id3'];
 
-        $this->assertSame($expectedResult, $result);
+        static::assertSame($expectedResult, $result);
     }
 }

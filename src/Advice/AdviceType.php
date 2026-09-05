@@ -12,8 +12,8 @@ enum AdviceType
     case Before;
     case Around;
     case After;
-    // TODO: implement
+    // Reserved for future after-returning advice support.
     case AfterReturning;
-    // TODO: implement
+    // Reserved for future after-throwing advice support.
     case AfterThrowing;
 }

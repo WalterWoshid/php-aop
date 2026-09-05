@@ -7,6 +7,7 @@ use Okapi\CodeTransformer\Core\Container\TransformerManager as CodeTransformerTr
 
 class TransformerManager extends CodeTransformerTransformerManager
 {
+    /** @return list<ComponentType> */
     protected function getAdditionalDependencyInjectionParams(): array
     {
         return [ComponentType::TRANSFORMER];

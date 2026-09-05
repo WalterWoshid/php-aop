@@ -1,4 +1,5 @@
 <?php
+
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\PrivateProperties;
 
 use Okapi\Aop\Attributes\Aspect;

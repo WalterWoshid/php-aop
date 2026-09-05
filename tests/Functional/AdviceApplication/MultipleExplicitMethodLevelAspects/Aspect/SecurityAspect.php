@@ -16,12 +16,13 @@ class SecurityAspect
     #[Before]
     public function applySecurityMeasures(BeforeMethodInvocation $invocation): void
     {
+        /** @var non-empty-array<string, array{id: string}|string> $arguments */
         $arguments = $invocation->getArguments();
 
-        $firstArgument = reset($arguments);
-        $firstArgumentKey = key($arguments);
+        $firstArgumentKey = array_key_first($arguments);
+        $firstArgument = $arguments[$firstArgumentKey];
 
-        if (gettype($firstArgument) === 'array') {
+        if (is_array($firstArgument)) {
             $id = &$firstArgument['id'];
             $id .= self::SECRET_HASH;
 
@@ -30,7 +31,7 @@ class SecurityAspect
             $invocation->setArguments($arguments);
         }
 
-        if (gettype($firstArgument) === 'string') {
+        if (is_string($firstArgument)) {
             $id = &$firstArgument;
             $id .= self::SECRET_HASH;
 

@@ -7,6 +7,7 @@ use Okapi\Aop\Tests\Functional\AdviceApplication\ExplicitClassLevelAspect\Aspect
 #[LoggingAspect]
 class InventoryTracker
 {
+    /** @var array<array-key, int> */
     private array $inventory = [];
 
     public function updateInventory(int $productId, int $quantity): void

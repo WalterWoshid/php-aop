@@ -1,9 +1,10 @@
 <?php
+
 namespace Okapi\Aop;
 
-use LogicException;
 use Closure;
 use Error;
+use LogicException;
 use Okapi\Aop\Core\Cache\CachePaths;
 use ReflectionClass;
 use ReflectionException;
@@ -22,8 +23,13 @@ final class PropertyAccess
     {
         $property = self::resolve($subject, $name, $declaringClass);
         if (!$property->isInitialized(is_object($subject) ? $subject : null)) {
-            throw new Error('Property ' . $property->getDeclaringClass()->getName()
-                . '::$' . $name . ' must not be accessed before initialization');
+            throw new Error(
+                'Property '
+                . $property->getDeclaringClass()->getName()
+                . '::$'
+                . $name
+                . ' must not be accessed before initialization',
+            );
         }
         return $property->getValue(is_object($subject) ? $subject : null);
     }
@@ -46,14 +52,29 @@ final class PropertyAccess
         $property = self::resolve($subject, $name, $declaringClass);
         // Do not initialize nullable properties or invoke __get after explicit unset.
         if (!$property->isInitialized(is_object($subject) ? $subject : null)) {
-            throw new Error('Typed property ' . $property->getDeclaringClass()->getName()
-                . '::$' . $name . ' must not be accessed before initialization');
+            throw new Error(
+                'Typed property '
+                . $property->getDeclaringClass()->getName()
+                . '::$'
+                . $name
+                . ' must not be accessed before initialization',
+            );
         }
         $scope = $property->getDeclaringClass()->getName();
-        $read = $property->isStatic()
-            ? Closure::bind(static function &() use ($name) { return self::$$name; }, null, $scope)
-            : Closure::bind(function &() use ($name) { return $this->$name; }, $subject, $scope);
-        $value =& $read();
+        if ($property->isStatic()) {
+            $read = Closure::bind(static fn&(): mixed => $scope::${$name}, null, $scope);
+            /** @var mixed $value A property can hold any value; its declared type is checked by PHP. */
+            $value = &$read();
+            return $value;
+        }
+        if (!is_object($subject)) {
+            throw new LogicException('An instance property requires an object.');
+        }
+        // resolve() validates the declaration and scope; PHP retains the reference and its type constraint.
+        // @mago-expect analysis:string-member-selector,ambiguous-object-property-access
+        $read = Closure::bind(static fn&(object $target): mixed => $target->{$name}, null, $scope);
+        /** @var mixed $value A property can hold any value; its declared type is checked by PHP. */
+        $value = &$read($subject);
         return $value;
     }
 
@@ -78,23 +99,37 @@ final class PropertyAccess
             return;
         }
         if ($property->isStatic()) {
-            throw new Error("Cannot unset static property \$$name.");
+            throw new Error("Cannot unset static property \${$name}.");
+        }
+        if (!is_object($subject)) {
+            throw new LogicException('An instance property requires an object.');
         }
         if (!$property->isInitialized($subject)) {
             return;
         }
-        $remove = Closure::bind(function () use ($name): void {
-            unset($this->$name);
-        }, $subject, $property->getDeclaringClass()->getName());
-        $remove();
+        $remove = Closure::bind(
+            static function (object $target) use ($name): void {
+                // resolve() has checked this declared property; runtime names are inherent to the accessor API.
+                // @mago-expect analysis:string-member-selector,ambiguous-object-property-access
+                unset($target->{$name});
+            },
+            null,
+            $property->getDeclaringClass()->getName(),
+        );
+        $remove($subject);
     }
 
-    private static function resolve(object|string $subject, string $name, ?string $declaringClass = null): ReflectionProperty
-    {
+    private static function resolve(
+        object|string $subject,
+        string $name,
+        ?string $declaringClass = null,
+    ): ReflectionProperty {
         $matches = [];
         $scope = $declaringClass === null ? null : ltrim($declaringClass, '\\');
-        $class = new ReflectionClass($subject);
-        do {
+        if (is_string($subject) && !class_exists($subject)) {
+            throw new ReflectionException("Class {$subject} does not exist.");
+        }
+        for ($class = new ReflectionClass($subject); $class !== false; $class = $class->getParentClass()) {
             $originalName = $class->getName();
             if (str_ends_with($originalName, CachePaths::PROXIED_SUFFIX)) {
                 $originalName = substr($originalName, 0, -strlen(CachePaths::PROXIED_SUFFIX));
@@ -115,17 +150,19 @@ final class PropertyAccess
                 $key = $independent ? $class->getName() : 'inherited';
                 $matches[$key] = $property;
             }
-        } while ($class = $class->getParentClass());
+        }
 
         if (!$matches) {
-            throw new ReflectionException("Property \$$name does not exist in the requested scope.");
+            throw new ReflectionException("Property \${$name} does not exist in the requested scope.");
         }
         if (count($matches) > 1) {
-            throw new LogicException("Property \$$name is ambiguous; pass its original declaring class to PropertyAccess::get()/set().");
+            throw new LogicException(
+                "Property \${$name} is ambiguous; pass its original declaring class to PropertyAccess::get()/set().",
+            );
         }
-        $property = reset($matches);
+        $property = array_values($matches)[0];
         if (is_string($subject) && !$property->isStatic()) {
-            throw new LogicException("An object is required to access instance property \$$name.");
+            throw new LogicException("An object is required to access instance property \${$name}.");
         }
         return $property;
     }

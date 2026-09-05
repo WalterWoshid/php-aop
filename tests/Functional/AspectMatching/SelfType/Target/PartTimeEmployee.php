@@ -2,6 +2,4 @@
 
 namespace Okapi\Aop\Tests\Functional\AspectMatching\SelfType\Target;
 
-class PartTimeEmployee extends Employee
-{
-}
+class PartTimeEmployee extends Employee {}

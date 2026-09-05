@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\ProtectedAndPrivateMethods\Aspect;
 
@@ -10,26 +11,22 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\ProtectedAndPrivateMethods\Target\
 #[Aspect]
 class BankingAspect
 {
-    #[After(
-        BankingSystem::class,
-        'removeFeeFromDeposit',
-    )]
+    #[After(BankingSystem::class, 'removeFeeFromDeposit')]
     public function removeFeeFromDeposit(AfterMethodInvocation $invocation): void
     {
+        /** @var float $result */
         $result = $invocation->proceed();
-        $result = $result / (1 - BankingSystem::DEPOSIT_FEE_PERCENTAGE / 100);
+        $result /= 1 - (BankingSystem::DEPOSIT_FEE_PERCENTAGE / 100);
 
         $invocation->setResult($result);
     }
 
-    #[After(
-        BankingSystem::class,
-        'addFeeToWithdraw',
-    )]
+    #[After(BankingSystem::class, 'addFeeToWithdraw')]
     public function removeFeeFromWithdraw(AfterMethodInvocation $invocation): void
     {
+        /** @var float $result */
         $result = $invocation->proceed();
-        $result = $result / (1 + BankingSystem::WITHDRAW_FEE_PERCENTAGE / 100);
+        $result /= 1 + (BankingSystem::WITHDRAW_FEE_PERCENTAGE / 100);
 
         $invocation->setResult($result);
     }

@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceBehavior\ModifyArgumentPassedByReference\Aspect;
 
@@ -10,10 +11,7 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\ModifyArgumentPassedByReference\Ta
 #[Aspect]
 class AddMetadataToArrayAspect
 {
-    #[After(
-        class: ArrayCreator::class,
-        method: 'createArray',
-    )]
+    #[After(class: ArrayCreator::class, method: 'createArray')]
     public function addMetadata(AfterMethodInvocation $invocation): void
     {
         /** @var array $array */

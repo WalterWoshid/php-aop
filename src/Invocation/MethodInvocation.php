@@ -22,10 +22,10 @@ abstract class MethodInvocation
      */
     public function __construct(
         private readonly ?object $subject,
-        private readonly string  $className,
-        private readonly string  $methodName,
-        protected mixed          $result,
-        private array            &$arguments,
+        private readonly string $className,
+        private readonly string $methodName,
+        protected mixed $result,
+        private array &$arguments,
     ) {}
 
     /**
@@ -39,9 +39,8 @@ abstract class MethodInvocation
     {
         if (is_int($nameOrIndex)) {
             return array_values($this->arguments)[$nameOrIndex] ?? null;
-        } else {
-            return $this->arguments[$nameOrIndex] ?? null;
         }
+        return $this->arguments[$nameOrIndex] ?? null;
     }
 
     /**
@@ -56,15 +55,15 @@ abstract class MethodInvocation
     {
         if (is_int($nameOrIndex)) {
             $this->arguments[array_keys($this->arguments)[$nameOrIndex]] = $value;
-        } else {
-            $this->arguments[$nameOrIndex] = $value;
+            return;
         }
+        $this->arguments[$nameOrIndex] = $value;
     }
 
     /**
      * Get all arguments.
      *
-     * @return array<string, mixed>
+     * @return array<array-key, mixed>
      */
     public function getArguments(): array
     {
@@ -93,13 +92,10 @@ abstract class MethodInvocation
     public function getAdviceType(): AdviceType
     {
         return match (true) {
-            $this instanceof AroundMethodInvocation         => AdviceType::Around,
-            $this instanceof BeforeMethodInvocation         => AdviceType::Before,
-            $this instanceof AfterMethodInvocation          => AdviceType::After,
-            // TODO: Implement
-            $this instanceof AfterReturningMethodInvocation => AdviceType::AfterReturning,
-            // TODO: Implement
-            $this instanceof AfterThrowingMethodInvocation  => AdviceType::AfterThrowing,
+            $this instanceof AroundMethodInvocation => AdviceType::Around,
+            $this instanceof BeforeMethodInvocation => AdviceType::Before,
+            $this instanceof AfterMethodInvocation => AdviceType::After,
+            default => throw new \UnhandledMatchError('Unsupported advice invocation type.'),
         };
     }
 
@@ -115,7 +111,9 @@ abstract class MethodInvocation
         return $this->subject;
     }
 
-    /** Access the subject's properties, optionally in an original declaring scope. */
+    /**
+     * Access the subject's properties, optionally in an original declaring scope.
+     */
     public function properties(?string $declaringClass = null): PropertyAccessor
     {
         return new PropertyAccessor($this->subject ?? $this->className, $declaringClass);

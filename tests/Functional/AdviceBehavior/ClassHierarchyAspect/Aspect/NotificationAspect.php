@@ -12,11 +12,8 @@ use Okapi\Aop\Tests\Functional\AdviceBehavior\ClassHierarchyAspect\Target\SmsSen
 #[Aspect]
 class NotificationAspect
 {
-    #[Around(
-        class: EmailSenderInterface::class,
-        method: 'send',
-    )]
-    public function verifyNotSms(AroundMethodInvocation $invocation)
+    #[Around(class: EmailSenderInterface::class, method: 'send')]
+    public function verifyNotSms(AroundMethodInvocation $invocation): mixed
     {
         if ($invocation->getClassName() === SmsSender::class) {
             throw new Error('SmsSender should not be intercepted.');

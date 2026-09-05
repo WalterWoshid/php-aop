@@ -11,6 +11,7 @@ class KernelOnClassAndParent extends AopKernel
 {
     protected ?string $cacheDir = Util::CACHE_DIR;
 
+    /** @var array<array-key, class-string> */
     protected array $aspects = [
         AspectOnClass::class,
         AspectOnParent::class,

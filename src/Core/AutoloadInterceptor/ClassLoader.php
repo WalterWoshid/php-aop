@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpPropertyOnlyWrittenInspection */
 namespace Okapi\Aop\Core\AutoloadInterceptor;
 
@@ -6,7 +7,6 @@ use DI\Attribute\Inject;
 use Okapi\Aop\Core\Matcher\AspectMatcher;
 use Okapi\CodeTransformer\Core\AutoloadInterceptor;
 use Okapi\CodeTransformer\Core\AutoloadInterceptor\ClassLoader as CodeTransformerClassLoader;
-use Okapi\CodeTransformer\Core\CachedStreamFilter;
 use Okapi\CodeTransformer\Core\Options\Environment;
 use Okapi\CodeTransformer\Core\StreamFilter;
 use Okapi\CodeTransformer\Core\StreamFilter\FilterInjector;
@@ -40,6 +40,8 @@ class ClassLoader extends CodeTransformerClassLoader
      *
      * @noinspection PhpStatementHasEmptyBodyInspection
      */
+    // CodeTransformer uses $namespacedClass; its Composer parent uses $class.
+    // Keep our immediate parent's existing named-argument contract until that dependency is aligned.
     public function findFile($namespacedClass): false|string
     {
         $filePath = $this->originalClassLoader->findFile($namespacedClass);
@@ -57,9 +59,15 @@ class ClassLoader extends CodeTransformerClassLoader
         }
 
         $filePath = Path::resolve($filePath);
+        if (!is_string($filePath)) {
+            return false;
+        }
 
-        foreach ($this->options->getExcludePaths() as $path) {
-            if (str_starts_with($filePath, Path::resolve($path))) {
+        /** @var string[] $excludePaths */
+        $excludePaths = $this->options->getExcludePaths();
+        foreach ($excludePaths as $path) {
+            $resolvedPath = Path::resolve($path);
+            if (is_string($resolvedPath) && str_starts_with($filePath, $resolvedPath)) {
                 return $filePath;
             }
         }
@@ -67,63 +75,30 @@ class ClassLoader extends CodeTransformerClassLoader
         // Query cache state
         $cacheState = $this->cacheStateManager->queryCacheState($filePath);
 
-        // When debugging, bypass the caching mechanism
-        if ($this->options->isDebug()) {
-            // ...
-        }
-
-        // In production mode, use the cache without checking if it is fresh
-        elseif ($this->options->getEnvironment() === Environment::PRODUCTION
-            && $cacheState
-        ) {
-            // Use the cached file if aspects have been applied
-            if ($cacheFilePath = $cacheState->getFilePath()) {
-                $this->classContainer->addClassContext(
-                    $filePath,
-                    $namespacedClass,
-                    $cacheFilePath,
-                );
-
-                // For cached files, the debugger will have trouble finding the
-                // original file, that's why we rewrite the file path with a PHP
-                // stream filter
-                /** @see CachedStreamFilter::filter() */
+        // Production trusts the cache; development checks freshness.
+        $useCache =
+            !$this->options->isDebug()
+            && $cacheState !== null
+            && (
+                $this->options->getEnvironment() === Environment::PRODUCTION
+                || $this->options->getEnvironment() === Environment::DEVELOPMENT
+                && $cacheState->isFresh()
+            );
+        if ($useCache) {
+            $cacheFilePath = $cacheState->getFilePath();
+            if ($cacheFilePath) {
+                $this->classContainer->addClassContext($filePath, $namespacedClass, $cacheFilePath);
+                // Preserve the original source path for debuggers.
                 return $this->filterInjector->rewriteCached($filePath);
             }
-
-            // Or return the original file if no aspects have been applied
             return $filePath;
         }
-
-        // In development mode, check if the cache is fresh
-        elseif ($this->options->getEnvironment() === Environment::DEVELOPMENT
-            && $cacheState
-            && $cacheState->isFresh()
-        ) {
-            if ($cacheFilePath = $cacheState->getFilePath()) {
-                $this->classContainer->addClassContext(
-                    $filePath,
-                    $namespacedClass,
-                    $cacheFilePath,
-                );
-
-                return $this->filterInjector->rewriteCached($filePath);
-            }
-
-            return $filePath;
-        }
-
 
         // Match the aspects
-        $matchedAspects = $this->aspectMatcher->matchByClassLoaderAndStore(
-            $namespacedClass,
-        );
+        $matchedAspects = $this->aspectMatcher->matchByClassLoaderAndStore($namespacedClass);
 
         // Match the transformer
-        $matchedTransformers = $this->transformerMatcher->matchAndStore(
-            $namespacedClass,
-            $filePath,
-        );
+        $matchedTransformers = $this->transformerMatcher->matchAndStore($namespacedClass, $filePath);
 
         // No aspects or transformers matched
         if (!($matchedAspects || $matchedTransformers)) {
@@ -167,7 +142,7 @@ class ClassLoader extends CodeTransformerClassLoader
                 'Okapi\Aop\AopKernel',
                 'Okapi\Aop\Tests\\',
                 'Nette\PhpGenerator\Factory',
-                'Nette\Utils\Reflection'
+                'Nette\Utils\Reflection',
             ],
         );
     }

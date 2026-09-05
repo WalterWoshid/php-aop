@@ -1,4 +1,5 @@
 <?php
+
 /** @noinspection PhpUnused */
 namespace Okapi\Aop\Tests\Functional\AdviceApplication\AdviceMatchingAbstractMethod\Aspect;
 
@@ -10,12 +11,10 @@ use Okapi\Aop\Tests\Functional\AdviceApplication\AdviceMatchingAbstractMethod\Ta
 #[Aspect]
 class FileUploaderAspect
 {
-    #[After(
-        class: FileUploader::class,
-        method: 'upload',
-    )]
+    #[After(class: FileUploader::class, method: 'upload')]
     public function modifyResult(AfterMethodInvocation $invocation): void
     {
+        /** @var string $result */
         $result = $invocation->proceed();
         $modifiedResult = str_replace('\\', '/', $result);
         $invocation->setResult($modifiedResult);

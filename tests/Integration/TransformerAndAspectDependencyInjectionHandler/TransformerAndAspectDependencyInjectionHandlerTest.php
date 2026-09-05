@@ -25,22 +25,14 @@ class TransformerAndAspectDependencyInjectionHandlerTest extends TestCase
         Kernel::init();
 
         $output = ob_get_clean();
+        static::assertIsString($output);
 
-        $this->assertStringContainsString(
-            'Generating aspect instance: ' . Aspect::class,
-            $output,
-        );
-        $this->assertStringContainsString(
-            'Generating transformer instance: ' . Transformer::class,
-            $output,
-        );
+        static::assertStringContainsString('Generating aspect instance: ' . Aspect::class, $output);
+        static::assertStringContainsString('Generating transformer instance: ' . Transformer::class, $output);
 
         $this->assertWillBeWoven(Target::class);
         $class = new Target();
 
-        $this->assertSame(
-            420.69,
-            $class->answer(),
-        );
+        static::assertSame(420.69, $class->answer());
     }
 }

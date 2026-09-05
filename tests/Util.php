@@ -12,10 +12,6 @@ class Util
 
     public static function clearCache(): void
     {
-        Filesystem::rm(
-            path:      Util::CACHE_DIR,
-            recursive: true,
-            force:     true,
-        );
+        Filesystem::rm(path: Util::CACHE_DIR, recursive: true, force: true);
     }
 }

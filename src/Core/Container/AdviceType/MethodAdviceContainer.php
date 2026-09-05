@@ -16,7 +16,7 @@ use Roave\BetterReflection\Reflection\ReflectionMethod as BetterReflectionMethod
  *
  * This class is used to store method advice information.
  *
- * @property-read MethodAdvice $adviceAttributeInstance
+ * @extends AdviceContainer<MethodAdvice>
  */
 class MethodAdviceContainer extends AdviceContainer
 {
@@ -39,13 +39,13 @@ class MethodAdviceContainer extends AdviceContainer
      * @param bool                    $isExplicit
      */
     public function __construct(
-        string                               $aspectClassName,
-        object                               $aspectInstance,
-        BaseReflectionClass                  $aspectRefClass,
-        BaseReflectionAttribute              $adviceAttribute,
-        MethodAdvice                         $adviceAttributeInstance,
+        string $aspectClassName,
+        object $aspectInstance,
+        BaseReflectionClass $aspectRefClass,
+        BaseReflectionAttribute $adviceAttribute,
+        MethodAdvice $adviceAttributeInstance,
         public readonly BaseReflectionMethod $adviceRefMethod,
-        private readonly bool                $isExplicit,
+        private readonly bool $isExplicit,
     ) {
         parent::__construct(
             $aspectClassName,
@@ -63,9 +63,8 @@ class MethodAdviceContainer extends AdviceContainer
      *
      * @return void
      */
-    public function addMatchedMethod(
-        BetterReflectionMethod $matchedRefMethod,
-    ): void {
+    public function addMatchedMethod(BetterReflectionMethod $matchedRefMethod): void
+    {
         $this->matchedMethods[] = DI::make(MatchedMethod::class, [
             'matchedRefMethod' => $matchedRefMethod,
         ]);

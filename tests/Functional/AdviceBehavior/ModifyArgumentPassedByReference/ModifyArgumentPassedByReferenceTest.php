@@ -23,10 +23,8 @@ class ModifyArgumentPassedByReferenceTest extends TestCase
 
         $data = 'my-awesome-data';
         $idCreator->createArray($data);
-        /** @var array $data */
 
-        $this->assertIsArray($data);
-        $this->assertArrayHasKey('metadata', $data);
-        $this->assertEquals('metadata', $data['metadata']);
+        static::assertArrayHasKey('metadata', $data);
+        static::assertSame('metadata', $data['metadata']);
     }
 }
