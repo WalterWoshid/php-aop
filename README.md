@@ -307,6 +307,31 @@ class PaymentProcessorAspect
 ```
 
 
+### Regular-expression patterns
+
+`class` and `method` accept either wildcard strings or explicit
+`Okapi\Wildcards\Regex` objects. Each argument can use a different pattern type:
+
+```php
+use Okapi\Aop\Attributes\After;
+use Okapi\Wildcards\Regex;
+
+#[After(
+    class: 'App\\Http\\Controllers\\*',
+    method: new Regex('/^[a-z][a-z0-9_]*$/i'),
+)]
+```
+
+This matches controller methods whose names start with a letter, excluding
+constructors and other magic methods. Regex objects can also be used for `class`.
+The same arguments are supported by `Before`, `Around`, and `After`.
+
+Pass a complete PHP regular expression, including delimiters and any modifiers.
+Regex patterns are used as written: add `^` and `$` when you want to match the
+whole name. Plain strings always retain wildcard semantics, even if they look
+like `/regex/`. Invalid explicit regex patterns throw `InvalidArgumentException`
+when the advice attribute is instantiated, identifying the affected argument.
+
 ### Target Classes
 
 ```php
