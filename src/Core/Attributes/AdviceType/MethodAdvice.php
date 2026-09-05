@@ -25,8 +25,8 @@ abstract class MethodAdvice extends BaseAdvice
     /**
      * MethodAdvice constructor.
      *
-     * @param string|null $class                 Wildcard pattern for the class name.
-     * @param string|null $method                Wildcard pattern for the method name.
+     * @param string|Regex|null $class           Wildcard string or explicit regular expression for the class name.
+     * @param string|Regex|null $method          Wildcard string or explicit regular expression for the method name.
      * @param int         $order                 The order of the advice.
      * @param bool        $interceptTraitMethods If {@see true}, trait methods will be intercepted.
      *                                           [Default: {@see true}]
@@ -34,13 +34,13 @@ abstract class MethodAdvice extends BaseAdvice
      *                                           [Default: {@see false}]
      */
     public function __construct(
-        ?string $class = null,
-        ?string $method = null,
+        string|Regex|null $class = null,
+        string|Regex|null $method = null,
         int $order = 0,
         public bool $interceptTraitMethods = true,
         public bool $onlyPublicMethods = false,
     ) {
         parent::__construct($class, $order);
-        $this->method = $method ? Regex::fromWildcard($method) : null;
+        $this->method = self::resolvePattern($method, 'method');
     }
 }
