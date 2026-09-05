@@ -760,6 +760,9 @@ $firstLog = $logs[0];
   or
 - Run `composer run-script test-coverage`
 
+For performance tests and the JIT configuration used by CI, see
+[Performance testing](PERFORMANCE.md).
+
 
 ## Contributing
 
