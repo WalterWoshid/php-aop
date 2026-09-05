@@ -67,6 +67,6 @@ jobs:
       - name: Verify performance with JIT disabled and OPcache enabled
         run: |
           grep -R -n -E 'opcache.jit|jit_buffer' /etc/php/${{ matrix.php-version }}/cli || true
-          printf 'opcache.jit=disable\nopcache.jit_buffer_size=0\n' | sudo tee /etc/php/${{ matrix.php-version }}/cli/conf.d/99-disable-jit.ini
+          printf 'opcache.jit=disable\nopcache.jit_buffer_size=0\n' | sudo tee /etc/php/${{ matrix.php-version }}/cli/conf.d/99-zz-disable-jit.ini
           php -r '$s = opcache_get_status(false); var_export(["opcache_enabled" => $s["opcache_enabled"], "jit" => $s["jit"]]); if (!$s["opcache_enabled"] || $s["jit"]["enabled"]) { exit(1); }'
           vendor/bin/phpunit --testsuite=Performance --display-notices
