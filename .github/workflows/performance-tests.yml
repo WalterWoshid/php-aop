@@ -13,7 +13,7 @@ jobs:
     strategy:
       matrix:
         operating-system: [ ubuntu-latest ]
-        php-version: [ '8.1', '8.2', '8.3', '8.4', '8.5' ]
+        php-version: [ '8.5' ]
 
     name: PHP ${{ matrix.php-version }} performance test on ${{ matrix.operating-system }}
 
@@ -45,5 +45,26 @@ jobs:
         name: Install Composer dependencies
         run: composer install --prefer-dist --no-progress
 
-      - name: PHPUnit Performance Tests
-        run: vendor/bin/phpunit --testsuite=Performance --display-notices
+      - name: Diagnose PHP startup and test discovery
+        shell: bash
+        run: |
+          php --ini
+          php -i | grep -E 'opcache\.|JIT|Opcode Caching'
+          set +e
+          for settings in baseline no-jit no-optimization no-opcache; do
+            args=()
+            case "$settings" in
+              no-jit) args=(-d opcache.jit=disable -d opcache.jit_buffer_size=0);;
+              no-optimization) args=(-d opcache.optimization_level=0);;
+              no-opcache) args=(-d opcache.enable_cli=0);;
+            esac
+            printf '\nConfiguration: %s\n' "$settings"
+            php "${args[@]}" vendor/bin/phpunit --version
+            printf 'Version exit: %s\n' "$?"
+            php "${args[@]}" vendor/bin/phpunit --testsuite=Performance --list-tests
+            printf 'Discovery exit: %s\n' "$?"
+          done
+      - name: Capture native backtrace
+        run: |
+          if ! command -v gdb; then sudo apt-get update && sudo apt-get install -y gdb; fi
+          gdb --batch -ex run -ex 'thread apply all bt' --args php vendor/bin/phpunit --testsuite=Performance --display-notices
