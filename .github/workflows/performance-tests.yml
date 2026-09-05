@@ -59,9 +59,9 @@ jobs:
               no-opcache) args=(-d opcache.enable_cli=0);;
             esac
             printf '\nConfiguration: %s\n' "$settings"
-            php "${args[@]}" vendor/bin/phpunit --version
+            timeout 20s php "${args[@]}" vendor/bin/phpunit --version
             printf 'Version exit: %s\n' "$?"
-            php "${args[@]}" vendor/bin/phpunit --testsuite=Performance --list-tests
+            timeout 20s php "${args[@]}" vendor/bin/phpunit --testsuite=Performance --list-tests
             printf 'Discovery exit: %s\n' "$?"
           done
       - name: Verify performance with JIT disabled and OPcache enabled
