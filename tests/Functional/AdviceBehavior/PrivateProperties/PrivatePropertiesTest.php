@@ -213,4 +213,47 @@ class PrivatePropertiesTest extends TestCase
         $this->expectException(\Error::class);
         $properties->uninitialized;
     }
+
+    public function testUnsetPropertyReadDoesNotInvokeSubjectMagicGetter(): void
+    {
+        $subject = new class {
+            private string $value = 'initial';
+            public int $calls = 0;
+            public function __get(string $name): mixed { $this->calls++; return 'magic'; }
+        };
+        $properties = new \Okapi\Aop\Invocation\PropertyAccessor($subject);
+        unset($properties->value);
+        try {
+            $properties->value;
+            self::fail('Expected uninitialized property error.');
+        } catch (\Error) {
+            self::assertSame(0, $subject->calls);
+        }
+    }
+
+    public function testRedeclaredPublicStaticPropertiesRequireScope(): void
+    {
+        $parent = Target\SharedStaticParent::class;
+        $child = Target\SharedStaticChild::class;
+        $properties = new \Okapi\Aop\Invocation\PropertyAccessor($child, $parent);
+        $properties->value = 3;
+        self::assertSame(3, $parent::$value);
+        self::assertSame(2, $child::$value);
+        $this->expectException(\LogicException::class);
+        PropertyAccess::get($child, 'value');
+    }
+
+    public function testWriteAfterUnsetPreservesNativeMagicSetterBehavior(): void
+    {
+        $subject = new class {
+            private string $value = 'initial';
+            public int $calls = 0;
+            public function __set(string $name, mixed $value): void { $this->calls++; }
+        };
+        $properties = new \Okapi\Aop\Invocation\PropertyAccessor($subject);
+        unset($properties->value);
+        $properties->value = 'new';
+        self::assertSame(1, $subject->calls);
+        self::assertFalse(isset($properties->value));
+    }
 }

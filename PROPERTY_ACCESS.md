@@ -55,7 +55,10 @@ PropertyAccess::set(Service::class, 'configuration', $value, Service::class);
 ```
 
 Property access uses PHP reflection and closures bound to the declaring scope,
-preserves declared types, and bypasses user-defined `__get`/`__set` methods.
+preserves declared types, and accesses declared storage directly for initialized
+properties. After explicitly unsetting a property, PHP may invoke the subject's
+`__set` when writing it again; the accessor preserves that native behavior, which
+may leave the declared storage uninitialized if the setter does not restore it.
 The lower-level `get()` returns a value; the invocation accessor supports references.
 A missing property or an invalid
 declaring scope throws `ReflectionException`. An ambiguous name or a class-name

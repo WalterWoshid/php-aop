@@ -21,6 +21,10 @@ final class PropertyAccess
     public static function get(object|string $subject, string $name, ?string $declaringClass = null): mixed
     {
         $property = self::resolve($subject, $name, $declaringClass);
+        if (!$property->isInitialized(is_object($subject) ? $subject : null)) {
+            throw new Error('Property ' . $property->getDeclaringClass()->getName()
+                . '::$' . $name . ' must not be accessed before initialization');
+        }
         return $property->getValue(is_object($subject) ? $subject : null);
     }
 
@@ -40,9 +44,11 @@ final class PropertyAccess
     public static function &reference(object|string $subject, string $name, ?string $declaringClass = null): mixed
     {
         $property = self::resolve($subject, $name, $declaringClass);
-        // Acquiring a reference to an uninitialized nullable property initializes
-        // it to null. Reading through the accessor must not introduce that side effect.
-        $property->getValue(is_object($subject) ? $subject : null);
+        // Do not initialize nullable properties or invoke __get after explicit unset.
+        if (!$property->isInitialized(is_object($subject) ? $subject : null)) {
+            throw new Error('Typed property ' . $property->getDeclaringClass()->getName()
+                . '::$' . $name . ' must not be accessed before initialization');
+        }
         $scope = $property->getDeclaringClass()->getName();
         $read = $property->isStatic()
             ? Closure::bind(static function &() use ($name) { return self::$$name; }, null, $scope)
@@ -74,6 +80,9 @@ final class PropertyAccess
         if ($property->isStatic()) {
             throw new Error("Cannot unset static property \$$name.");
         }
+        if (!$property->isInitialized($subject)) {
+            return;
+        }
         $remove = Closure::bind(function () use ($name): void {
             unset($this->$name);
         }, $subject, $property->getDeclaringClass()->getName());
@@ -97,11 +106,13 @@ final class PropertyAccess
                 if ($property->getName() !== $name || $property->getDeclaringClass()->getName() !== $class->getName()) {
                     continue;
                 }
-                // Non-private overrides share storage. Private declarations do not.
-                if (!$property->isPrivate() && isset($matches['inherited'])) {
+                // Non-private instance overrides share storage. Redeclared static
+                // properties and private declarations each have independent slots.
+                $independent = $property->isPrivate() || $property->isStatic();
+                if (!$independent && isset($matches['inherited'])) {
                     continue;
                 }
-                $key = $property->isPrivate() ? $class->getName() : 'inherited';
+                $key = $independent ? $class->getName() : 'inherited';
                 $matches[$key] = $property;
             }
         } while ($class = $class->getParentClass());
