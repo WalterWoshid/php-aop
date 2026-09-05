@@ -16,10 +16,7 @@ class DatabaseModifierAspect
     )]
     public function modifyData(AfterMethodInvocation $invocation): void
     {
-        /** @var SecureDatabaseService $subject */
-        $subject = $invocation->getSubject();
-
-        $subject->data = [
+        $invocation->properties()->data = [
             'd' => 4,
             'e' => 5,
             'f' => 6,

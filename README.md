@@ -689,8 +689,11 @@ $firstLog = $logs[0];
 - Intercept "private" and "protected" methods
   (Will show errors in IDEs)
 
-- Access "private" and "protected" properties and methods of the subject
-  (Will show errors in IDEs)
+- Access private properties through [`$invocation->properties()`](PROPERTY_ACCESS.md),
+  with an explicit declaring class when names overlap in an inheritance hierarchy
+
+- Access protected properties and private/protected methods of the subject
+  (Direct access may show errors in IDEs)
 
 - Intercept "final" methods and classes
 
