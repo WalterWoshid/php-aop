@@ -755,33 +755,29 @@ $firstLog = $logs[0];
 
 ## General workflow when a class is loaded
 
-- The `AutoloadInterceptor` service intercepts the loading of a class
+PHP-AOP builds on CodeTransformer's autoloader, stream filters, and cache. After
+kernel initialization, eligible classes follow this simplified flow:
 
-- The `AspectMatcher` matches the class and method names with the list of
-  aspects and their configuration
+```mermaid
+flowchart TD
+    Request["Class requested"] --> Cache{"Reusable cache state?"}
+    Cache -->|Yes| Cached["Load the source recorded by the cache state"]
+    Cache -->|No| Match["Match aspects and transformers"]
+    Match --> Any{"Anything matched?"}
+    Any -->|No| Original["Load original source"]
+    Any -->|Yes| Transform["Apply transformers, then weave matched advice"]
+    Transform --> Load["Update cache state and load resulting source"]
+```
 
-- If the class and method names match an aspect, query the cache state to see
-  if the source code is already cached
+Internal classes and excluded paths bypass this flow. Debug mode disables cache
+reuse; development checks freshness, while production trusts existing cache state.
 
-  - Check if the cache is valid:
-    - Modification time of the caching process is less than the modification
-      time of the source file or the aspect file
-    - Check if the cache file, the source file and the aspect file exist
+For weaving, the original implementation is renamed to `MyClass__AopProxied`, and
+the generated `MyClass` **extends that renamed implementation**. Its intercepted
+methods delegate to the advice machinery; callers keep using the original name.
 
-  - If the cache is valid, load the proxied class from the cache
-  - If not, return a stream filter path to the `AutoloadInterceptor` service
-
-- The `StreamFilter` modifies the source code by applying the aspects
-  - Convert the original source code to a proxied class 
-    (MyClass -> MyClass__AopProxied)
-  - The proxied class should have the same amount of lines as the original
-    class (because the debugger will point to the original class)
-  - The proxied class extends a woven class which contains the logic of applying
-    the aspects
-  - The woven class will be included at the bottom of the proxied class
-  - The woven class will also be cached
-
-
+See [How PHP-AOP works](docs/architecture.md) for the initialization, class-loading,
+and method-invocation diagrams, with links to the implementation.
 
 ## Testing
 
