@@ -191,6 +191,24 @@ class ProxiedClassModifier
      */
     private function changeVisibility(): void
     {
+        // A descendant may be loaded after this class. Keep every private property
+        // in its declaring scope, even when no same-name property is known yet.
+        foreach ($this->sourceFileNode->getDescendantNodes() as $node) {
+            $modifiers = match (true) {
+                $node instanceof Node\PropertyDeclaration => $node->modifiers ?? [],
+                $node instanceof Node\Parameter => array_filter([
+                    $node->visibilityToken,
+                    ...($node->modifiers ?? []),
+                ]),
+                default => [],
+            };
+            foreach ($modifiers as $modifier) {
+                if ($modifier->kind === TokenKind::PrivateKeyword) {
+                    $this->alreadyProcessed[] = $modifier;
+                }
+            }
+        }
+
         $this->tokenCallbacks[] = function (Token $token) {
             if ($token->kind === TokenKind::PrivateKeyword
                 || $token->kind === TokenKind::ProtectedKeyword

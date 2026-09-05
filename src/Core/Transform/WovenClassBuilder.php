@@ -7,6 +7,7 @@ use Nette\PhpGenerator\ClassLike;
 use Nette\PhpGenerator\ClassType;
 use Nette\PhpGenerator\Factory;
 use Nette\PhpGenerator\Method;
+use Nette\PhpGenerator\Parameter;
 use Nette\PhpGenerator\PhpNamespace;
 use Nette\PhpGenerator\PromotedParameter;
 use Nette\PhpGenerator\Property;
@@ -225,11 +226,23 @@ class WovenClassBuilder
 
         $methodName = $refMethod->getName();
 
-        foreach ($method->getParameters() as $parameter) {
+        $parameters = $method->getParameters();
+        foreach ($parameters as $name => $parameter) {
             if ($parameter instanceof PromotedParameter) {
-                $parameter->setReadOnly(false);
+                // Promotion belongs to the original constructor, which the
+                // interceptor invokes. A forwarding method must not own a second slot.
+                $plain = new Parameter($parameter->getName());
+                $plain->setType($parameter->getType());
+                $plain->setNullable($parameter->isNullable());
+                $plain->setReference($parameter->isReference());
+                $plain->setAttributes($parameter->getAttributes());
+                if ($parameter->hasDefaultValue()) {
+                    $plain->setDefaultValue($parameter->getDefaultValue());
+                }
+                $parameters[$name] = $plain;
             }
         }
+        $method->setParameters($parameters);
 
         // Add "return" if the method has a return type
         $return = (string)$method->getReturnType() !== 'void' ? 'return ' : '';
